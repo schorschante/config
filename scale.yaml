@@ -1,0 +1,108 @@
+esphome:
+  name: scale
+  platform: ESP8266
+  board: nodemcu
+  
+globals:
+  - id: tara_value
+    type: float
+    restore_value: no
+    initial_value: '0.0' 
+  - id: weight_value
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: sensor_timer
+    type: float
+    restore_value: no
+    initial_value: '0' 
+
+# Enable logging
+logger:
+
+
+# Enable Home Assistant API
+api:
+
+ota:
+  password: "00f55bf6fc92f5d709f5756a38046d5f"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Tim Fallback Hotspot"
+    password: "aH7nlctFFXx5"
+    
+http_request:
+  useragent: esphome/device
+  timeout: 10s
+    
+web_server:
+  port: 80
+    
+    
+sensor:
+  - platform: hx711
+    name: "HX711 Value"
+    id: "scale_id"
+    dout_pin: D2
+    clk_pin: D3
+    gain: 128
+    update_interval: 100ms
+    unit_of_measurement: g
+    filters:
+      - calibrate_linear:
+          - 111140 -> 0
+          - 212335 -> 216
+      - lambda:  |-
+          return x - id(tara_value) ;
+      - median:
+          window_size: 10
+          send_every: 4
+          send_first_at: 3
+    on_value: 
+      then:
+       - lambda: |-
+          id(weight_value) = x;
+       - http_request.post:
+             url: !lambda |-
+              if(x < 14 && id(start_grind).state){
+                    return "http://scale-server/switch/relay/turn_on";
+                  } else if(x < 16 && id(start_grind).state){
+                    if(id(sensor_timer) <= 3){
+                      id(sensor_timer)+=1;
+                      return "http://scale-server/switch/relay/turn_off"; 
+                    }else if(id(sensor_timer) > 3){
+                      id(sensor_timer)+=1;
+                      if(id(sensor_timer) > 6){
+                        id(sensor_timer) = 0;
+                      }
+                      return "http://scale-server/switch/relay/turn_on";
+                    }
+                  } 
+                  return "http://scale-server/switch/relay/turn_off";
+                  
+
+    
+binary_sensor:
+  - platform: gpio
+    pin: 
+     number: 2
+     mode:
+        input: true
+        pullup: true
+    name: "start_grind"
+    id: "start_grind"
+    filters:
+      - invert:
+    on_press:
+      then:
+      - lambda: |-
+          id(tara_value) += id(weight_value);
+    
+
+captive_portal:
+    
