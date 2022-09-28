@@ -69,15 +69,15 @@ sensor:
           id(weight_value) = x;
        - http_request.post:
              url: !lambda |-
-              if(x < 14 && id(start_grind).state){
+              if(x < 12 && id(start_grind).state){
                     return "http://scale-server/switch/relay/turn_on";
-                  } else if(x < 16 && id(start_grind).state){
-                    if(id(sensor_timer) <= 3){
+                  } else if(x < 14 && id(start_grind).state){
+                    if(id(sensor_timer) <= 2){
                       id(sensor_timer)+=1;
                       return "http://scale-server/switch/relay/turn_off"; 
-                    }else if(id(sensor_timer) > 3){
+                    }else if(id(sensor_timer) > 2){
                       id(sensor_timer)+=1;
-                      if(id(sensor_timer) > 6){
+                      if(id(sensor_timer) > 4){
                         id(sensor_timer) = 0;
                       }
                       return "http://scale-server/switch/relay/turn_on";
@@ -85,8 +85,6 @@ sensor:
                   } 
                   return "http://scale-server/switch/relay/turn_off";
                   
-
-    
 binary_sensor:
   - platform: gpio
     pin: 
