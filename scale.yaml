@@ -51,7 +51,7 @@ sensor:
     dout_pin: D2
     clk_pin: D3
     gain: 128
-    update_interval: 100ms
+    update_interval: 200ms
     unit_of_measurement: g
     filters:
       - calibrate_linear:
@@ -72,12 +72,12 @@ sensor:
               if(x < 12 && id(start_grind).state){
                     return "http://scale-server/switch/relay/turn_on";
                   } else if(x < 14 && id(start_grind).state){
-                    if(id(sensor_timer) <= 2){
+                    if(id(sensor_timer) <= 6){
                       id(sensor_timer)+=1;
                       return "http://scale-server/switch/relay/turn_off"; 
-                    }else if(id(sensor_timer) > 2){
+                    }else if(id(sensor_timer) > 4){
                       id(sensor_timer)+=1;
-                      if(id(sensor_timer) > 4){
+                      if(id(sensor_timer) > 6){
                         id(sensor_timer) = 0;
                       }
                       return "http://scale-server/switch/relay/turn_on";
