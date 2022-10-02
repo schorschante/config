@@ -16,6 +16,11 @@ globals:
     type: float
     restore_value: no
     initial_value: '0' 
+  - id: http_errors
+    type: int
+    restore_value: yes
+    initial_value: '0' 
+
 
 # Enable logging
 logger:
@@ -51,7 +56,7 @@ sensor:
     dout_pin: D2
     clk_pin: D3
     gain: 128
-    update_interval: 200ms
+    update_interval: 100ms
     unit_of_measurement: g
     filters:
       - calibrate_linear:
@@ -65,19 +70,29 @@ sensor:
           send_first_at: 3
     on_value: 
       then:
+       - logger.log:
+          format: "HTTP-ERRORS %i <------------------"
+          args: [ 'id(http_errors)' ]
        - lambda: |-
           id(weight_value) = x;
        - http_request.post:
+             on_response:
+               then:
+                - lambda: |- 
+                    if(status_code != 200){
+                      id(http_errors) +=1;
+                    }
+                        
              url: !lambda |-
-              if(x < 12 && id(start_grind).state){
+              if(x < 13 && id(start_grind).state){
                     return "http://scale-server/switch/relay/turn_on";
-                  } else if(x < 14 && id(start_grind).state){
-                    if(id(sensor_timer) <= 6){
+                  } else if(x < 15 && id(start_grind).state){
+                    if(id(sensor_timer) <= 4){
                       id(sensor_timer)+=1;
                       return "http://scale-server/switch/relay/turn_off"; 
-                    }else if(id(sensor_timer) > 4){
+                    }else if(id(sensor_timer) > 3){
                       id(sensor_timer)+=1;
-                      if(id(sensor_timer) > 6){
+                      if(id(sensor_timer) > 4){
                         id(sensor_timer) = 0;
                       }
                       return "http://scale-server/switch/relay/turn_on";
@@ -98,9 +113,23 @@ binary_sensor:
       - invert:
     on_press:
       then:
+      - logger.log:
+         format: "HTTP-ERRORS %i <------------------"
+         args: [ 'id(http_errors)' ]
       - lambda: |-
           id(tara_value) += id(weight_value);
-    
-
+          id(sensor_timer) = 0;
+          
+switch:
+  - platform: gpio
+    pin: 
+     number: 5
+    name: "reset_error_count"
+    icon: "mdi:restart"
+    on_turn_on:
+      then:
+      - lambda: |-
+          id(http_errors) = 0;
+          
 captive_portal:
     
