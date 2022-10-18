@@ -79,10 +79,10 @@ sensor:
           id(weight_value) = x;
        - http_request.post:
              url: !lambda |-
-              if(x < 13.7 && id(start_grind).state){
+              if(x < 13.8 && id(start_grind).state){
                     return "http://192.168.178.125/switch/relay/turn_on";
                   } else if(x < 14.5 && id(start_grind).state){
-                    if(id(sensor_timer) <= 15){
+                    if(id(sensor_timer) <= 16){
                       id(sensor_timer)+=1;
                       return "http://192.168.178.125/switch/relay/turn_off"; 
                     }else if(id(sensor_timer) > 15){
