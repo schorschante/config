@@ -1,0 +1,95 @@
+esphome:
+  name: wetterstation
+  friendly_name: wetterstation
+
+esp8266:
+  board: nodemcu
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "rOVA6/DuLsGcBRf5bE8Engu3Xk+hD5SBwBXmO7Ie3Hk="
+
+ota:
+  password: "78c95312dfa0a668708ab40e69e8f5f6"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Raumklima Fallback Hotspot"
+    password: "fxalLUM01PmD"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+font:
+  # gfonts://family[@weight]
+  - file: "gfonts://Roboto"
+    id: roboto
+    size: 20
+
+
+uart:
+  rx_pin: GPIO13
+  tx_pin: GPIO15
+  baud_rate: 9600
+
+sensor:
+  - platform: dht
+    pin: D3
+    temperature:
+      name: "Living Room Temperature"
+      filters:
+        - offset: -2.8
+    humidity:
+      name: "Living Room Humidity"
+      id:   "humidity_value"
+    update_interval: 30s
+  - platform: mhz19
+    id: "my_mhz19_id"
+    co2:
+      name: "MH-Z19 CO2 Value"
+      id:   "co2_value"      
+    temperature:
+      name: "MH-Z19 Temperature"
+      id:   "temp_value"
+      accuracy_decimals: 2
+      filters:
+        - offset: -4.9
+    update_interval: 10s
+    automatic_baseline_calibration: false
+
+switch:
+ - platform: gpio
+   pin:
+    number: D4
+   name: "calibrate"
+   on_turn_on :
+    then:
+      - mhz19.calibrate_zero: my_mhz19_id
+
+
+i2c:
+  sda: D1
+  scl: D2
+  scan: true
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    reset_pin: D0
+    #address: 0x3C
+    update_interval: 30s
+    lambda: |-
+      it.printf(0, 0, id(roboto),  "co2     : %.0f",  id(co2_value).state);
+      it.printf(0, 21, id(roboto), "temp   : %.0f °C",  id(temp_value).state);
+      it.printf(0, 45, id(roboto), "feucht : %.0f %%",  id(humidity_value).state);
+
