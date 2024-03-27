@@ -42,17 +42,18 @@ uart:
   tx_pin: GPIO15
   baud_rate: 9600
 
+
 sensor:
-  - platform: dht
-    pin: D3
+  - platform: aht10
+    variant: AHT10
+    address: 0x38
     temperature:
-      name: "Living Room Temperature"
-      filters:
-        - offset: -2.8
+      name: "Temperature"
+      id:   "temp_value"
     humidity:
-      name: "Living Room Humidity"
-      id:   "humidity_value"
-    update_interval: 30s
+      name: "Humidity"
+      id: "humidity_value"
+    update_interval: 60s
   - platform: mhz19
     id: "my_mhz19_id"
     co2:
@@ -60,7 +61,6 @@ sensor:
       id:   "co2_value"      
     temperature:
       name: "MH-Z19 Temperature"
-      id:   "temp_value"
       accuracy_decimals: 2
       filters:
         - offset: -4.9
@@ -86,7 +86,7 @@ display:
   - platform: ssd1306_i2c
     model: "SSD1306 128x64"
     reset_pin: D0
-    #address: 0x3C
+    address: 0x3C
     update_interval: 30s
     lambda: |-
       it.printf(0, 0, id(roboto),  "co2     : %.0f",  id(co2_value).state);
