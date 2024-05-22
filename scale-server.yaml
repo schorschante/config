@@ -34,6 +34,10 @@ web_server:
 switch:
   platform: gpio
   name: "Relay"
+  id:   "relay_id"
   pin: GPIO16
+  on_turn_off: 
+    then:
+     - switch.turn_on: relay_id
 
 captive_portal:
