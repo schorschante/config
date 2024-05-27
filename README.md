@@ -1,9 +1,14 @@
-----ESPHOME----
+__ESPHOME__
+
+service: /etc/systemd/system/esphome.service
 
 esphome dashboard esphome/config/
+/home/schorsch/esphome/config/
 
 
-----OctoPi----
+
+__OctoPi__
+service: /etc/systemd/system/octoprint.service
 
 Automatic start up
 
