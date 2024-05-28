@@ -18,3 +18,8 @@ sudo service influxdb status
 http://192.168.178.192:8086
 
 1passwort
+
+___Mosquitto MQTT__
+
+sudo systemctl enable mosquitto
+
