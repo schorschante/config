@@ -14,7 +14,7 @@ sudo service influxdb status
 
 http://192.168.178.192:8086
 
-1passwort
+admin1passwort
 
 ### Mosquitto MQTT
 sudo systemctl enable mosquitto
@@ -23,5 +23,9 @@ sudo systemctl enable mosquitto
 sysbench --num-threads=4 --test=cpu --cpu-max-prime=10000 run
 
 watch -n 2 vcgencmd measure_temp
+
+### Grafana
+http://192.168.178.192:3000
+admin:1passwort
 
 
