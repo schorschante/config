@@ -6,7 +6,6 @@
 ##### service: /etc/systemd/system/octoprint.service
 ##### server:  http://192.168.178.192:5000
 
-
 ### Influx-DB
 ##### service: influxdb
 ##### server:  http://192.168.178.192:8086
@@ -30,4 +29,10 @@ watch -n 2 vcgencmd measure_temp
 
 ### MQTT-->Influx Service
 #####  service: solar_m2i.service
+#####  service: moisture_m2i.service
+
+
+### MQTT-->Influx Service
+##### sudo journalctl -u moisture_m2i.service -b
+
 
