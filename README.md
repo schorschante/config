@@ -33,7 +33,7 @@ watch -n 2 vcgencmd measure_temp
 
 ### Node-Red
 ##### service: nodered.service
-##### server: http://localhost:1880
+##### server: http://192.168.178.192:1880
 
 
 ### MQTT-->Influx Service
