@@ -31,6 +31,10 @@ watch -n 2 vcgencmd measure_temp
 #####  service: solar_m2i.service
 #####  service: moisture_m2i.service
 
+### Node-Red
+##### service: nodered.service
+##### server: http://localhost:1880
+
 
 ### MQTT-->Influx Service
 ##### sudo journalctl -u moisture_m2i.service -b
