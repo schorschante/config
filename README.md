@@ -30,6 +30,7 @@ watch -n 2 vcgencmd measure_temp
 ### MQTT-->Influx Service
 #####  service: solar_m2i.service
 #####  service: moisture_m2i.service
+#####  service: voltage_m2i.service
 
 ### Node-Red
 ##### service: nodered.service
