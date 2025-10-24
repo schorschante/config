@@ -1,0 +1,44 @@
+esphome:
+  name: led-stripe
+  friendly_name: LED_STRIPE
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+light:
+  - platform: fastled_clockless
+    chipset: WS2811
+    pin: GPIO4
+    num_leds: 250
+    rgb_order: BRG
+    name: "Stromkasten_Stripe"
+    id: "Stromkasten_Stripe"
+
+
+web_server:
+  port: 80
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "7C91EHO+2hWhc9MgKjrGctHy3mNfSGqlbItUno70CNY="
+
+ota:
+  password: "0fef198917e35a415e9d23e20f9d1e78"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Led-Stripe Fallback Hotspot"
+    password: "5hFy3df4YI0w"
+
+captive_portal:
+    
