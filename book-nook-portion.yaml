@@ -1,0 +1,74 @@
+esphome:
+  name: book-nook-portion
+  friendly_name: book-nook-portion
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "zgaW+hh3tXzLizRniNi6zSnvQPc4ulVN4a0SdHUyxTc="
+
+ota:
+  - platform: esphome
+    password: "19b49a990fba75efd13d8ca035962d9a"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Book-Nook-Portion"
+    password: "PmsuQSdpFwML"
+
+captive_portal:
+
+web_server:
+
+output:
+  - platform: gpio
+    pin: GPIO5   # D1
+    id: led1_out
+  - platform: gpio
+    pin: GPIO4   # D2
+    id: led2_out
+  - platform: gpio
+    pin: GPIO0   # D3
+    id: led3_out
+  - platform: gpio
+    pin: GPIO2   # D4
+    id: led4_out
+  - platform: gpio
+    pin: GPIO14  # D5
+    id: led5_out
+
+# ------------------------------
+# Lichter als Schalter anzeigen
+# ------------------------------
+light:
+  - platform: binary
+    name: "LED 1"
+    output: led1_out
+    restore_mode: ALWAYS_ON
+  - platform: binary
+    name: "LED 2"
+    output: led2_out
+    restore_mode: ALWAYS_ON
+  - platform: binary
+    name: "LED 3"
+    output: led3_out
+    restore_mode: ALWAYS_ON
+  - platform: binary
+    name: "LED 4"
+    output: led4_out
+    restore_mode: ALWAYS_ON
+  - platform: binary
+    name: "LED 5"
+    output: led5_out
+    restore_mode: ALWAYS_ON
+    
