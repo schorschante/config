@@ -28,7 +28,8 @@ api:
             blue: !lambda 'return blue;'
 
 ota:
-  password: "1988c6d0a635f207adcd1cbe561ab9c1"
+  - platform: esphome
+    password: "1988c6d0a635f207adcd1cbe561ab9c1"
 
 wifi:
   ssid: !secret wifi_ssid
