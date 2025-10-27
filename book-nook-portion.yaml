@@ -1,9 +1,18 @@
 esphome:
   name: book-nook-portion
   friendly_name: book-nook-portion
+  on_boot:
+    priority: -10
+    then:
+      - logger.log: "Starte – warte kurz (OTA/Logs)..."
+      - delay: 10min  # kleines Fenster für OTA/Diagnose
+      - logger.log: "☀️ Tag erkannt -> Deep Sleep 30min"
+      - deep_sleep.enter:
+          id: deepsleep_ctrl
+          sleep_duration: 1min
 
 esp8266:
-  board: esp01_1m
+  board: nodemcu
 
 # Enable logging
 logger:
@@ -29,6 +38,32 @@ wifi:
 captive_portal:
 
 web_server:
+
+
+
+sun:
+  latitude: 50.9383°
+  longitude: 6.9599°
+
+deep_sleep:
+  id: deepsleep_ctrl
+
+time:
+  - platform: sntp
+
+interval:
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            sun.is_above_horizon
+          then:
+            - logger.log: "☀️ Tag -> gehe schlafen"
+            - deep_sleep.enter:
+                id: deepsleep_ctrl
+                sleep_duration: 30min
+          else:
+            - logger.log: "🌙 Nacht -> wach bleiben"
 
 output:
   - platform: gpio
