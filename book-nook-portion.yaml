@@ -1,15 +1,7 @@
 esphome:
   name: book-nook-portion
   friendly_name: book-nook-portion
-  on_boot:
-    priority: -10
-    then:
-      - logger.log: "Starte – warte kurz (OTA/Logs)..."
-      - delay: 10min  # kleines Fenster für OTA/Diagnose
-      - logger.log: "☀️ Tag erkannt -> Deep Sleep 30min"
-      - deep_sleep.enter:
-          id: deepsleep_ctrl
-          sleep_duration: 1min
+
 
 esp8266:
   board: nodemcu
@@ -66,44 +58,147 @@ interval:
             - logger.log: "🌙 Nacht -> wach bleiben"
 
 output:
-  - platform: gpio
+  - platform: esp8266_pwm
     pin: GPIO5   # D1
-    id: led1_out
-  - platform: gpio
+    frequency: 1200 Hz
+    id: led1_pwm
+  - platform: esp8266_pwm
     pin: GPIO4   # D2
-    id: led2_out
-  - platform: gpio
-    pin: GPIO0   # D3
-    id: led3_out
-  - platform: gpio
-    pin: GPIO2   # D4
-    id: led4_out
-  - platform: gpio
+    frequency: 1200 Hz
+    id: led2_pwm
+  - platform: esp8266_pwm
+    pin: GPIO0   # D3  (Boot-Pin; du wolltest ihn behalten)
+    frequency: 1200 Hz
+    id: led3_pwm
+  - platform: esp8266_pwm
+    pin: GPIO2   # D4  (Boot-Pin; du wolltest ihn behalten)
+    frequency: 1200 Hz
+    id: led4_pwm
+  - platform: esp8266_pwm
     pin: GPIO14  # D5
-    id: led5_out
+    frequency: 1200 Hz
+    id: led5_pwm
 
 # ------------------------------
 # Lichter als Schalter anzeigen
 # ------------------------------
 light:
-  - platform: binary
+  - platform: monochromatic
     name: "LED 1"
-    output: led1_out
+    id: led1
+    output: led1_pwm
     restore_mode: ALWAYS_ON
-  - platform: binary
+    default_transition_length: 1000ms
+    effects:
+      - lambda:
+          name: "ruhiges Flackern"
+          update_interval: 5000ms
+          lambda: |-
+            static float b = 0.6f;
+            static uint32_t next = 0;
+            auto now = millis();
+            if (now < next) return;
+            next = now + (uint32_t)(random_float() * 3000 + 2000);  // 2–5 s
+            b += (random_float() - 0.5f) * 0.4f;                    // ±0.2
+            if (b < 0.3f) b = 0.3f;
+            if (b > 1.0f) b = 1.0f;
+            auto call = id(led1).turn_on();
+            call.set_brightness(b);
+            call.set_transition_length(1000);
+            call.perform();
+
+  - platform: monochromatic
     name: "LED 2"
-    output: led2_out
+    id: led2
+    output: led2_pwm
     restore_mode: ALWAYS_ON
-  - platform: binary
+    default_transition_length: 1000ms
+    effects:
+      - lambda:
+          name: "ruhiges Flackern"
+          update_interval: 5000ms
+          lambda: |-
+            static float b = 0.6f;
+            static uint32_t next = 0;
+            auto now = millis();
+            if (now < next) return;
+            next = now + (uint32_t)(random_float() * 3000 + 2000);
+            b += (random_float() - 0.5f) * 0.4f;
+            if (b < 0.3f) b = 0.3f;
+            if (b > 1.0f) b = 1.0f;
+            auto call = id(led2).turn_on();
+            call.set_brightness(b);
+            call.set_transition_length(1000);
+            call.perform();
+
+  - platform: monochromatic
     name: "LED 3"
-    output: led3_out
+    id: led3
+    output: led3_pwm
     restore_mode: ALWAYS_ON
-  - platform: binary
+    default_transition_length: 1000ms
+    effects:
+      - lambda:
+          name: "ruhiges Flackern"
+          update_interval: 5000ms
+          lambda: |-
+            static float b = 0.6f;
+            static uint32_t next = 0;
+            auto now = millis();
+            if (now < next) return;
+            next = now + (uint32_t)(random_float() * 3000 + 2000);
+            b += (random_float() - 0.5f) * 0.4f;
+            if (b < 0.3f) b = 0.3f;
+            if (b > 1.0f) b = 1.0f;
+            auto call = id(led3).turn_on();
+            call.set_brightness(b);
+            call.set_transition_length(1000);
+            call.perform();
+
+  - platform: monochromatic
     name: "LED 4"
-    output: led4_out
+    id: led4
+    output: led4_pwm
     restore_mode: ALWAYS_ON
-  - platform: binary
+    default_transition_length: 1000ms
+    effects:
+      - lambda:
+          name: "ruhiges Flackern"
+          update_interval: 5000ms
+          lambda: |-
+            static float b = 0.6f;
+            static uint32_t next = 0;
+            auto now = millis();
+            if (now < next) return;
+            next = now + (uint32_t)(random_float() * 3000 + 2000);
+            b += (random_float() - 0.5f) * 0.4f;
+            if (b < 0.3f) b = 0.3f;
+            if (b > 1.0f) b = 1.0f;
+            auto call = id(led4).turn_on();
+            call.set_brightness(b);
+            call.set_transition_length(1000);
+            call.perform();
+
+  - platform: monochromatic
     name: "LED 5"
-    output: led5_out
+    id: led5
+    output: led5_pwm
     restore_mode: ALWAYS_ON
-    
+    default_transition_length: 1000ms
+    effects:
+      - lambda:
+          name: "ruhiges Flackern"
+          update_interval: 5000ms
+          lambda: |-
+            static float b = 0.6f;
+            static uint32_t next = 0;
+            auto now = millis();
+            if (now < next) return;
+            next = now + (uint32_t)(random_float() * 3000 + 2000);
+            b += (random_float() - 0.5f) * 0.4f;
+            if (b < 0.3f) b = 0.3f;
+            if (b > 1.0f) b = 1.0f;
+            auto call = id(led5).turn_on();
+            call.set_brightness(b);
+            call.set_transition_length(1000);
+            call.perform();
