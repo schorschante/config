@@ -1,6 +1,23 @@
 esphome:
   name: book-nook-portion
   friendly_name: book-nook-portion
+  on_boot:
+    then:
+      - light.turn_on:
+          id: led1
+          effect: "ruhiges Flackern"
+      - light.turn_on:
+          id: led2
+          effect: "ruhiges Flackern"
+      - light.turn_on:
+          id: led3
+          effect: "ruhiges Flackern"
+      - light.turn_on:
+          id: led4
+          effect: "ruhiges Flackern"
+      - light.turn_on:
+          id: led5
+          effect: "ruhiges Flackern"
 
 
 esp8266:
@@ -51,31 +68,31 @@ interval:
             sun.is_above_horizon
           then:
             - logger.log: "☀️ Tag -> gehe schlafen"
-            - deep_sleep.enter:
-                id: deepsleep_ctrl
-                sleep_duration: 30min
+#            - deep_sleep.enter:
+#                id: deepsleep_ctrl
+#                sleep_duration: 30min
           else:
             - logger.log: "🌙 Nacht -> wach bleiben"
 
 output:
   - platform: esp8266_pwm
-    pin: GPIO5   # D1
+    pin: GPIO12   
     frequency: 1200 Hz
     id: led1_pwm
   - platform: esp8266_pwm
-    pin: GPIO4   # D2
+    pin: GPIO13   
     frequency: 1200 Hz
     id: led2_pwm
   - platform: esp8266_pwm
-    pin: GPIO0   # D3  (Boot-Pin; du wolltest ihn behalten)
+    pin: GPIO4   
     frequency: 1200 Hz
     id: led3_pwm
   - platform: esp8266_pwm
-    pin: GPIO2   # D4  (Boot-Pin; du wolltest ihn behalten)
+    pin: GPIO5   
     frequency: 1200 Hz
     id: led4_pwm
   - platform: esp8266_pwm
-    pin: GPIO14  # D5
+    pin: GPIO14  
     frequency: 1200 Hz
     id: led5_pwm
 
@@ -92,7 +109,7 @@ light:
     effects:
       - lambda:
           name: "ruhiges Flackern"
-          update_interval: 5000ms
+          update_interval: 5100ms
           lambda: |-
             static float b = 0.6f;
             static uint32_t next = 0;
@@ -116,7 +133,7 @@ light:
     effects:
       - lambda:
           name: "ruhiges Flackern"
-          update_interval: 5000ms
+          update_interval: 5200ms
           lambda: |-
             static float b = 0.6f;
             static uint32_t next = 0;
@@ -140,7 +157,7 @@ light:
     effects:
       - lambda:
           name: "ruhiges Flackern"
-          update_interval: 5000ms
+          update_interval: 5300ms
           lambda: |-
             static float b = 0.6f;
             static uint32_t next = 0;
@@ -164,7 +181,7 @@ light:
     effects:
       - lambda:
           name: "ruhiges Flackern"
-          update_interval: 5000ms
+          update_interval: 5400ms
           lambda: |-
             static float b = 0.6f;
             static uint32_t next = 0;
@@ -188,7 +205,7 @@ light:
     effects:
       - lambda:
           name: "ruhiges Flackern"
-          update_interval: 5000ms
+          update_interval: 5500ms
           lambda: |-
             static float b = 0.6f;
             static uint32_t next = 0;
