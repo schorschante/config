@@ -14,7 +14,8 @@ api:
     key: "rOVA6/DuLsGcBRf5bE8Engu3Xk+hD5SBwBXmO7Ie3Hk="
 
 ota:
-  password: "78c95312dfa0a668708ab40e69e8f5f6"
+  - platform: esphome
+    password: "78c95312dfa0a668708ab40e69e8f5f6"
 
 wifi:
   ssid: !secret wifi_ssid
