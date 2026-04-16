@@ -1,0 +1,28 @@
+esphome:
+  name: lora_receiver_eu
+  platform: ESP32
+  board: esp32dev
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+  id: spi_bus
+
+lora:
+  id: lora_radio
+  cs_pin: GPIO5
+  reset_pin: GPIO14
+  irq_pin: GPIO26
+  spi_id: spi_bus
+  frequency: 868MHz
+  bandwidth: 125kHz
+  spreading_factor: 7
+  sync_word: 0x12
+
+binary_sensor:
+  - platform: lora
+    id: lora_packet
+    on_lora_data:
+      - lambda: |-
+          ESP_LOGI("lora", "received packet: %s", x.c_str());
