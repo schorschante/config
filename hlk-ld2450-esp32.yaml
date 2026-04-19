@@ -1,21 +1,28 @@
 substitutions:
   name: "radar-sensor"
   friendly_name: "HLK-LD2450 Radar"
+  max_distance_mm: "6000"       # Maximale Erkennungsreichweite in mm (6000 = 6m)
+  desk_distance_mm: "2000"      # Entfernung für "Person am Schreibtisch" in mm (2000 = 2m)
+  desk_timeout: "5min"          # Wie lange niemand erkannt sein muss bis "frei"
 
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
 
 esp32:
-  board: esp32dev  # Anpassen: z.B. esp32dev, wemos_d1_mini32, nodemcu-32s
+  board: esp32dev
   framework:
     type: esp-idf
 
 logger:
+  level: INFO
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  fast_connect: true
+  power_save_mode: none
+  
   ap:
     ssid: "${friendly_name} Fallback"
     password: "esphome123"
@@ -25,19 +32,16 @@ captive_portal:
 api:
   encryption:
     key: !secret api_encryption_key
-  reboot_timeout: 0s  # Kein Reboot ohne Home Assistant
+  reboot_timeout: 0s
 
 ota:
   - platform: esphome
     password: !secret ota_password
 
-# Web-UI aktivieren (Port 80)
 web_server:
   port: 80
   version: 3
 
-# UART-Verbindung zum HLK-LD2450
-# ESP32 UART2: kein Konflikt mit USB/Logger (UART0 bleibt frei)
 uart:
   id: uart_ld2450
   rx_pin: GPIO16
@@ -46,91 +50,152 @@ uart:
   rx_buffer_size: 2048
   parity: NONE
   stop_bits: 1
-  debug:
-    direction: RX
-    dummy_receiver: true
-    after:
-      timeout: 100ms
-    sequence:
-      - lambda: |-
-          UARTDebug::log_hex(direction, bytes, ':');
-          ESP_LOGD("uart", "Empfangen: %d bytes", bytes.size());
 
-# HLK-LD2450 Komponente
 ld2450:
   id: ld2450_radar
   uart_id: uart_ld2450
 
-# Sensoren: alle 3 Ziele + Personenanzahl in einem Block
 sensor:
   - platform: uptime
     name: "Uptime"
-    update_interval: 10s
-  - platform: template
-    name: "Boot Counter"
-    id: boot_counter
-    accuracy_decimals: 0
-    lambda: |-
-      static int boots = 0;
-      boots++;
-      return boots;
+    id: uptime_sensor
+    update_interval: 60s
+  
   - platform: ld2450
     ld2450_id: ld2450_radar
+    
     target_count:
-      name: "Anzahl erkannter Personen"
+      name: "Anzahl Personen gesamt"
+      id: target_count
+      filters:
+        - throttle: 500ms  # Throttle hier statt oben
+    
     target_1:
-      x:
-        name: "Person 1 X-Position"
-        unit_of_measurement: "mm"
-      y:
-        name: "Person 1 Y-Position"
-        unit_of_measurement: "mm"
-      speed:
-        name: "Person 1 Geschwindigkeit"
-        unit_of_measurement: "mm/s"
       distance:
         name: "Person 1 Entfernung"
+        id: dist1
         unit_of_measurement: "mm"
-        icon: "mdi:ruler"
-    target_2:
+        filters:
+          - lambda: |-
+              if (x < 0 || x > ${max_distance_mm}) return {};
+              return x;
+          - throttle: 500ms
       x:
-        name: "Person 2 X-Position"
-        unit_of_measurement: "mm"
+        id: x1
+        internal: true
       y:
-        name: "Person 2 Y-Position"
-        unit_of_measurement: "mm"
-      speed:
-        name: "Person 2 Geschwindigkeit"
-        unit_of_measurement: "mm/s"
+        id: tgt_y1
+        internal: true
+
+    target_2:
       distance:
         name: "Person 2 Entfernung"
+        id: dist2
         unit_of_measurement: "mm"
-        icon: "mdi:ruler"
-    target_3:
+        filters:
+          - lambda: |-
+              if (x < 0 || x > ${max_distance_mm}) return {};
+              return x;
+          - throttle: 500ms
       x:
-        name: "Person 3 X-Position"
-        unit_of_measurement: "mm"
+        id: x2
+        internal: true
       y:
-        name: "Person 3 Y-Position"
-        unit_of_measurement: "mm"
-      speed:
-        name: "Person 3 Geschwindigkeit"
-        unit_of_measurement: "mm/s"
+        id: tgt_y2
+        internal: true
+
+    target_3:
       distance:
         name: "Person 3 Entfernung"
+        id: dist3
         unit_of_measurement: "mm"
-        icon: "mdi:ruler"
+        filters:
+          - lambda: |-
+              if (x < 0 || x > ${max_distance_mm}) return {};
+              return x;
+          - throttle: 500ms
+      x:
+        id: x3
+        internal: true
+      y:
+        id: tgt_y3
+        internal: true
 
-# Binärsensor: Anwesenheit erkannt
 binary_sensor:
   - platform: ld2450
     ld2450_id: ld2450_radar
     has_target:
-      name: "Anwesenheit erkannt"
-      icon: "mdi:motion-sensor"
+      name: "Irgendwer im Raum"
+      id: anyone_present
 
-# Switch: Multi-Target-Modus aktivieren
-# Einmal einschalten → Sensor speichert das dauerhaft
+  - platform: template
+    name: "Person am Schreibtisch"
+    id: desk_occupied
+    lambda: |-
+      bool someone_close = false;
+      int close_count = 0;
+      
+      if (id(dist1).state > 0 && id(dist1).state < ${desk_distance_mm}) {
+        someone_close = true;
+        close_count++;
+      }
+      if (id(dist2).state > 0 && id(dist2).state < ${desk_distance_mm}) {
+        someone_close = true;
+        close_count++;
+      }
+      if (id(dist3).state > 0 && id(dist3).state < ${desk_distance_mm}) {
+        someone_close = true;
+        close_count++;
+      }
+      
+      if (someone_close) {
+        ESP_LOGD("desk", "✅ %d Person(en) am Schreibtisch (<2m)", close_count);
+      }
+      
+      return someone_close;
+    filters:
+      - delayed_off: ${desk_timeout}
+    on_state:
+      then:
+        - if:
+            condition:
+              binary_sensor.is_off: desk_occupied
+            then:
+              - logger.log:
+                  level: WARN
+                  format: "⚠️ NIEMAND am Schreibtisch seit 10s! PC könnte suspendiert werden."
+                  tag: "pc_control"
+            else:
+              - logger.log:
+                  level: INFO
+                  format: "✅ Jemand am Schreibtisch - PC bleibt an"
+                  tag: "pc_control"
+
+interval:
+  - interval: 30s
+    then:
+      - lambda: |-
+          ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          ESP_LOGI("status", "Raum-Status:");
+          ESP_LOGI("status", "  Gesamt im Raum: %.0f Person(en)", id(target_count).state);
+          
+          if (id(dist1).state > 0) {
+            ESP_LOGI("status", "  👤 Person 1: %.0fmm entfernt", id(dist1).state);
+          }
+          if (id(dist2).state > 0) {
+            ESP_LOGI("status", "  👤 Person 2: %.0fmm entfernt", id(dist2).state);
+          }
+          if (id(dist3).state > 0) {
+            ESP_LOGI("status", "  👤 Person 3: %.0fmm entfernt", id(dist3).state);
+          }
+          
+          if (id(desk_occupied).state) {
+            ESP_LOGI("status", "  💻 PC-Status: AN (Schreibtisch belegt)");
+          } else {
+            ESP_LOGW("status", "  💻 PC-Status: SUSPEND (niemand am Schreibtisch)");
+          }
+          ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
 switch:
   - platform: ld2450
     ld2450_id: ld2450_radar
