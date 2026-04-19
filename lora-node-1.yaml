@@ -1,0 +1,158 @@
+esphome:
+  name: lora-node-1
+  friendly_name: LoRa Node 1
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "LoRa Node 1"
+    password: "lora1234"
+    ap_timeout: 0s  # ← WICHTIG: AP niemals abschalten!
+    
+
+web_server:
+  port: 80
+
+captive_portal:
+
+globals:
+  - id: last_rssi
+    type: float
+    initial_value: '0.0'
+  - id: last_snr
+    type: float
+    initial_value: '0.0'
+  - id: packet_count
+    type: int
+    initial_value: '0'
+  - id: last_packet_millis
+    type: uint32_t
+    initial_value: '0'
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 11
+  - file: "gfonts://Roboto"
+    id: font_large
+    size: 22
+    glyphs: "0123456789-. dBm"
+
+display:
+  - platform: ssd1306_i2c
+    model: SH1106_128X64
+    address: 0x3C
+    lambda: |-
+      if (id(packet_count) == 0) {
+        uint32_t secs = millis() / 1000;
+        it.printf(0,  0, id(font_small), "LoRa Empfaenger");
+        it.printf(0, 20, id(font_small), "Kein Paket seit");
+        if (secs < 60)
+          it.printf(0, 34, id(font_small), "%ds", (int)secs);
+        else
+          it.printf(0, 34, id(font_small), "%dm %ds", (int)(secs/60), (int)(secs%60));
+      } else {
+        uint32_t secs = (millis() - id(last_packet_millis)) / 1000;
+        it.printf(0,  0, id(font_small), "RSSI:");
+        it.printf(0, 14, id(font_large), "%.0f dBm", id(last_rssi));
+        if (secs < 60)
+          it.printf(0, 44, id(font_small), "SNR:%.1fdB  seit %ds", id(last_snr), (int)secs);
+        else
+          it.printf(0, 44, id(font_small), "SNR:%.1fdB  seit %dm", id(last_snr), (int)(secs/60));
+      }
+
+spi:
+  clk_pin: GPIO5
+  mosi_pin: GPIO27
+  miso_pin: GPIO19
+
+sx127x:
+  dio0_pin: GPIO26
+  cs_pin: GPIO18
+  rst_pin: GPIO14
+  pa_pin: BOOST
+  pa_power: 14
+  modulation: LORA
+  frequency: 868.1MHz
+  bandwidth: 125_0kHz
+  spreading_factor: 12
+  coding_rate: CR_4_8
+  crc_enable: true
+  sync_value: 0x12
+  preamble_size: 8
+  rx_start: true
+  on_packet:
+    then:
+      - lambda: |-
+          id(last_rssi) = rssi;
+          id(last_snr) = snr;
+          id(packet_count) += 1;
+          id(last_packet_millis) = millis();
+          char hex[256];
+          ESP_LOGD("lora", "packet %s", format_hex_to(hex, x));
+          ESP_LOGD("lora", "rssi %.2f dBm  snr %.2f dB", rssi, snr);
+          id(lora_rssi_sensor).publish_state(rssi);
+          id(lora_snr_sensor).publish_state(snr);
+          id(lora_last_packet).publish_state(format_hex(x));
+
+sensor:
+  - platform: template
+    name: "LoRa RSSI"
+    id: lora_rssi_sensor
+    unit_of_measurement: "dBm"
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: "mdi:signal"
+  - platform: template
+    name: "LoRa SNR"
+    id: lora_snr_sensor
+    unit_of_measurement: "dB"
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: "mdi:sine-wave"
+
+text_sensor:
+  - platform: template
+    name: "LoRa Last Packet"
+    id: lora_last_packet
+    icon: "mdi:message-text"
+  - platform: template
+    name: "LoRa Last Packet Age"
+    id: lora_last_time
+    icon: "mdi:clock-outline"
+    update_interval: 1s
+    lambda: |-
+      uint32_t secs = id(last_packet_millis) == 0
+        ? millis() / 1000
+        : (millis() - id(last_packet_millis)) / 1000;
+      if (secs < 60)
+        return {str_sprintf("kein Paket seit %ds", secs)};
+      else if (secs < 3600)
+        return {str_sprintf("kein Paket seit %dm %ds", secs/60, secs%60)};
+      else
+        return {str_sprintf("kein Paket seit %dh %dm", secs/3600, (secs%3600)/60)};
+
+button:
+  - platform: template
+    name: "LoRa: Testpaket senden"
+    on_press:
+      then:
+        - sx127x.send_packet:
+            data: [0xC5, 0x51, 0x78, 0x82, 0xB7, 0xF9, 0x9C, 0x5C]
