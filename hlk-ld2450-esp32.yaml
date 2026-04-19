@@ -25,6 +25,7 @@ captive_portal:
 api:
   encryption:
     key: !secret api_encryption_key
+  reboot_timeout: 0s  # Kein Reboot ohne Home Assistant
 
 ota:
   - platform: esphome
@@ -39,11 +40,21 @@ web_server:
 # ESP32 UART2: kein Konflikt mit USB/Logger (UART0 bleibt frei)
 uart:
   id: uart_ld2450
-  rx_pin: GPIO16   # UART2 RX
-  tx_pin: GPIO17   # UART2 TX
+  rx_pin: GPIO16
+  tx_pin: GPIO17
   baud_rate: 256000
+  rx_buffer_size: 2048
   parity: NONE
   stop_bits: 1
+  debug:
+    direction: RX
+    dummy_receiver: true
+    after:
+      timeout: 100ms
+    sequence:
+      - lambda: |-
+          UARTDebug::log_hex(direction, bytes, ':');
+          ESP_LOGD("uart", "Empfangen: %d bytes", bytes.size());
 
 # HLK-LD2450 Komponente
 ld2450:
@@ -52,6 +63,17 @@ ld2450:
 
 # Sensoren: alle 3 Ziele + Personenanzahl in einem Block
 sensor:
+  - platform: uptime
+    name: "Uptime"
+    update_interval: 10s
+  - platform: template
+    name: "Boot Counter"
+    id: boot_counter
+    accuracy_decimals: 0
+    lambda: |-
+      static int boots = 0;
+      boots++;
+      return boots;
   - platform: ld2450
     ld2450_id: ld2450_radar
     target_count:
@@ -59,44 +81,44 @@ sensor:
     target_1:
       x:
         name: "Person 1 X-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       y:
         name: "Person 1 Y-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       speed:
         name: "Person 1 Geschwindigkeit"
-        unit_of_measurement: "cm/s"
+        unit_of_measurement: "mm/s"
       distance:
         name: "Person 1 Entfernung"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
         icon: "mdi:ruler"
     target_2:
       x:
         name: "Person 2 X-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       y:
         name: "Person 2 Y-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       speed:
         name: "Person 2 Geschwindigkeit"
-        unit_of_measurement: "cm/s"
+        unit_of_measurement: "mm/s"
       distance:
         name: "Person 2 Entfernung"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
         icon: "mdi:ruler"
     target_3:
       x:
         name: "Person 3 X-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       y:
         name: "Person 3 Y-Position"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
       speed:
         name: "Person 3 Geschwindigkeit"
-        unit_of_measurement: "cm/s"
+        unit_of_measurement: "mm/s"
       distance:
         name: "Person 3 Entfernung"
-        unit_of_measurement: "cm"
+        unit_of_measurement: "mm"
         icon: "mdi:ruler"
 
 # Binärsensor: Anwesenheit erkannt
@@ -121,3 +143,18 @@ text_sensor:
   - platform: wifi_info
     ip_address:
       name: "IP-Adresse"
+  - platform: template
+    name: "Letzter Reset-Grund"
+    entity_category: diagnostic
+    update_interval: 20s
+    lambda: |-
+      switch (esp_reset_reason()) {
+        case ESP_RST_POWERON:  return {"Power-On"};
+        case ESP_RST_SW:       return {"Software Reset"};
+        case ESP_RST_PANIC:    return {"Panic / Exception"};
+        case ESP_RST_INT_WDT:  return {"Interrupt Watchdog"};
+        case ESP_RST_TASK_WDT: return {"Task Watchdog"};
+        case ESP_RST_WDT:      return {"Watchdog"};
+        case ESP_RST_BROWNOUT: return {"Brown-Out (Spannungsabfall)"};
+        default:               return {"Sonstiger Reset"};
+      }
