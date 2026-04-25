@@ -47,10 +47,11 @@ HLK-LD2450          ESP32
 #### Wichtige Parameter
 
 - **UART:** GPIO16 (RX), GPIO17 (TX), 256000 Baud, RX Buffer 2048
-- **Distanz-Schwelle:** 200cm (2 Meter)
-- **Delayed Off:** 10 Sekunden (Verzögerung bevor PC suspendiert)
+- **Distanz-Schwelle:** 2000mm (2 Meter) — `desk_distance_mm`
+- **Delayed Off:** 5 Minuten (Verzögerung bevor PC suspendiert) — `desk_timeout`
 - **Safety Delay:** 3 Sekunden (zusätzlicher Delay vor Suspend)
 - **Throttle:** 500ms (Sensor-Update-Rate)
+- **Status-Log:** alle 30s — zeigt Countdown wenn niemand erkannt aber `desk_occupied` noch ON
 
 #### Datenformat
 
@@ -143,29 +144,30 @@ curl http://localhost:5000/status
 ### Logik-Flow
 
 1. **Sensor trackt Personen** im Raum (bis zu 3 gleichzeitig)
-2. **Distanz-Check:** Ist jemand näher als 200cm (2m)?
-3. **Wenn JA:** 
+2. **Distanz-Check:** Ist jemand näher als 2000mm (2m)?
+3. **Wenn JA:**
    - Binary Sensor `desk_occupied` = ON
    - PC bleibt an
    - Log: "✅ Jemand am Schreibtisch - PC bleibt an"
 
 4. **Wenn NEIN:**
-   - Binary Sensor `desk_occupied` = OFF
-   - Warte 10 Sekunden (`delayed_off`)
+   - `desk_occupied` bleibt noch ON (5-Minuten-`delayed_off` läuft)
+   - Status-Log alle 30s: "AN - aber seit Xs niemand erkannt! PC suspend in Ys"
+   - Nach 5 Minuten: `desk_occupied` = OFF
    - Warte weitere 3 Sekunden (Safety Delay)
    - Sende HTTP POST zu `http://192.168.178.72:5000/suspend`
    - PC suspendiert
-   - Log: "⚠️ NIEMAND am Schreibtisch seit 10s - PC wird suspendiert..."
+   - Log: "⚠️ NIEMAND am Schreibtisch seit 5min - PC wird suspendiert..."
 
 ### Szenarien
 
 | Szenario | Person 1 | Person 2 | PC Status |
 |----------|----------|----------|-----------|
-| Du am Schreibtisch | 150cm | - | AN ✅ |
-| Frau hinten | 350cm | - | SUSPEND ⚠️ |
-| Beide, du vorne | 150cm | 350cm | AN ✅ |
-| Beide hinten | 350cm | 400cm | SUSPEND ⚠️ |
-| Raum leer | - | - | SUSPEND ⚠️ |
+| Du am Schreibtisch | 1500mm | - | AN ✅ |
+| Frau hinten | 3500mm | - | SUSPEND nach 5min ⚠️ |
+| Beide, du vorne | 1500mm | 3500mm | AN ✅ |
+| Beide hinten | 3500mm | 4000mm | SUSPEND nach 5min ⚠️ |
+| Raum leer | - | - | SUSPEND nach 5min ⚠️ |
 
 ## Konfiguration
 
@@ -193,15 +195,17 @@ curl http://localhost:5000/status
 
 #### Distanz-Schwelle ändern
 
+Oben in den `substitutions` anpassen:
 ```yaml
-if (id(dist1).state > 0 && id(dist1).state < 250) {  # 2,5m statt 2m
+desk_distance_mm: "2500"  # 2,5m statt 2m
 ```
 
 #### Verzögerung ändern
 
+Oben in den `substitutions` anpassen:
 ```yaml
-filters:
-  - delayed_off: 300s  # 5 Minuten statt 10 Sekunden
+desk_timeout: "10min"   # für delayed_off
+desk_timeout_s: "600"   # gleicher Wert in Sekunden (für Countdown-Berechnung)
 ```
 
 #### PC-IP ändern

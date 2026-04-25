@@ -4,6 +4,7 @@ substitutions:
   max_distance_mm: "6000"       # Maximale Erkennungsreichweite (6000mm = 6m)
   desk_distance_mm: "2000"      # Schreibtisch-Schwelle (2000mm = 2m)
   desk_timeout: "5min"          # Verzögerung bis "frei"
+  desk_timeout_s: "300"         # Gleicher Wert in Sekunden (für Berechnungen)
 
 esphome:
   name: ${name}
@@ -41,6 +42,12 @@ ota:
 web_server:
   port: 80
   version: 3
+
+globals:
+  - id: no_presence_since_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: '0'
 
 # ========== HTTP Request ==========
 http_request:
@@ -201,10 +208,17 @@ interval:
           int active_count = (id(dist1).state > 0 ? 1 : 0) +
                              (id(dist2).state > 0 ? 1 : 0) +
                              (id(dist3).state > 0 ? 1 : 0);
+
+          if (active_count > 0) {
+            id(no_presence_since_ms) = 0;
+          } else if (id(no_presence_since_ms) == 0) {
+            id(no_presence_since_ms) = millis();
+          }
+
           ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
           ESP_LOGI("status", "Raum-Status:");
           ESP_LOGI("status", "  Gesamt im Raum: %d Person(en)", active_count);
-          
+
           if (id(dist1).state > 0) {
             ESP_LOGI("status", "  👤 Person 1: %.0fmm entfernt", id(dist1).state);
           }
@@ -214,11 +228,18 @@ interval:
           if (id(dist3).state > 0) {
             ESP_LOGI("status", "  👤 Person 3: %.0fmm entfernt", id(dist3).state);
           }
-          
+
           if (id(desk_occupied).state) {
-            ESP_LOGI("status", "  💻 PC-Status: AN (Schreibtisch belegt)");
+            if (active_count == 0 && id(no_presence_since_ms) > 0) {
+              uint32_t elapsed_s = (millis() - id(no_presence_since_ms)) / 1000;
+              uint32_t remaining_s = ${desk_timeout_s} > elapsed_s ? ${desk_timeout_s} - elapsed_s : 0;
+              ESP_LOGW("status", "  💻 PC-Status: AN - aber seit %ds niemand erkannt!", elapsed_s);
+              ESP_LOGW("status", "  ⏱ PC suspend in %ds", remaining_s);
+            } else {
+              ESP_LOGI("status", "  💻 PC-Status: AN (Schreibtisch belegt)");
+            }
           } else {
-            ESP_LOGW("status", "  💻 PC-Status: SUSPEND (niemand am Schreibtisch)");
+            ESP_LOGW("status", "  💻 PC-Status: SUSPEND (Befehl gesendet)");
           }
           ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
