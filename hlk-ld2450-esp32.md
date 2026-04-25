@@ -48,7 +48,7 @@ HLK-LD2450          ESP32
 
 - **UART:** GPIO16 (RX), GPIO17 (TX), 256000 Baud, RX Buffer 2048
 - **Distanz-Schwelle:** 2000mm (2 Meter) — `desk_distance_mm`
-- **Delayed Off:** 5 Minuten (Verzögerung bevor PC suspendiert) — `desk_timeout`
+- **Suspend Timeout:** konfigurierbar per Web-UI ("PC Suspend Timeout", 0–60 min, 0 = deaktiviert), Standard: 5 min
 - **Safety Delay:** 3 Sekunden (zusätzlicher Delay vor Suspend)
 - **Throttle:** 500ms (Sensor-Update-Rate)
 - **Status-Log:** alle 30s — zeigt Countdown wenn niemand erkannt aber `desk_occupied` noch ON
@@ -151,13 +151,13 @@ curl http://localhost:5000/status
    - Log: "✅ Jemand am Schreibtisch - PC bleibt an"
 
 4. **Wenn NEIN:**
-   - `desk_occupied` bleibt noch ON (5-Minuten-`delayed_off` läuft)
+   - `no_presence_since_ms` wird gesetzt (Startzeit der Abwesenheit)
    - Status-Log alle 30s: "AN - aber seit Xs niemand erkannt! PC suspend in Ys"
-   - Nach 5 Minuten: `desk_occupied` = OFF
+   - Nach konfiguriertem Timeout (Web-UI): `suspend_sent` = true
    - Warte weitere 3 Sekunden (Safety Delay)
    - Sende HTTP POST zu `http://192.168.178.72:5000/suspend`
    - PC suspendiert
-   - Log: "⚠️ NIEMAND am Schreibtisch seit 5min - PC wird suspendiert..."
+   - Log: "⚠️ NIEMAND am Schreibtisch - PC wird suspendiert..."
 
 ### Szenarien
 
@@ -202,11 +202,11 @@ desk_distance_mm: "2500"  # 2,5m statt 2m
 
 #### Verzögerung ändern
 
-Oben in den `substitutions` anpassen:
-```yaml
-desk_timeout: "10min"   # für delayed_off
-desk_timeout_s: "600"   # gleicher Wert in Sekunden (für Countdown-Berechnung)
-```
+**Über Web-UI konfigurierbar** (kein Reflash nötig):
+- Web-UI öffnen: `http://ESP32_IP`
+- "PC Suspend Timeout" auf gewünschten Wert setzen (0–60 min)
+- **0 = Suspend deaktiviert** (PC geht nie aus)
+- Wert wird auf dem Gerät gespeichert (überlebt Neustart)
 
 #### PC-IP ändern
 

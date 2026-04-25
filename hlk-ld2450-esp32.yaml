@@ -48,6 +48,23 @@ globals:
     type: uint32_t
     restore_value: false
     initial_value: '0'
+  - id: suspend_sent
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+number:
+  - platform: template
+    name: "PC Suspend Timeout"
+    id: suspend_timeout_min
+    icon: "mdi:timer-sleep"
+    unit_of_measurement: "min"
+    min_value: 0
+    max_value: 60
+    step: 1
+    initial_value: 5
+    restore_value: true
+    optimistic: true
 
 # ========== HTTP Request ==========
 http_request:
@@ -167,34 +184,12 @@ binary_sensor:
       }
       
       return someone_close;
-    filters:
-      - delayed_off: ${desk_timeout}
     on_state:
       then:
         - if:
             condition:
-              binary_sensor.is_off: desk_occupied
+              binary_sensor.is_on: desk_occupied
             then:
-              - logger.log:
-                  level: WARN
-                  format: "⚠️ NIEMAND am Schreibtisch seit 10s - PC wird suspendiert..."
-                  tag: "pc_control"
-              - delay: 3s  # Noch 3s Sicherheits-Delay
-              - http_request.post:
-                  url: "http://192.168.178.72:5000/suspend"
-                  on_response:
-                    then:
-                      - logger.log:
-                          level: INFO
-                          format: "✅ Suspend-Befehl an PC gesendet"
-                          tag: "pc_control"
-                  on_error:
-                    then:
-                      - logger.log:
-                          level: ERROR
-                          format: "❌ PC Suspend fehlgeschlagen!"
-                          tag: "pc_control"
-            else:
               - logger.log:
                   level: INFO
                   format: "✅ Jemand am Schreibtisch - PC bleibt an"
@@ -209,10 +204,22 @@ interval:
                              (id(dist2).state > 0 ? 1 : 0) +
                              (id(dist3).state > 0 ? 1 : 0);
 
-          if (active_count > 0) {
+          bool desk_close = id(desk_occupied).state;
+
+          if (desk_close) {
             id(no_presence_since_ms) = 0;
+            id(suspend_sent) = false;
           } else if (id(no_presence_since_ms) == 0) {
             id(no_presence_since_ms) = millis();
+          }
+
+          // Suspend auslösen wenn Timeout abgelaufen
+          float timeout_min = id(suspend_timeout_min).state;
+          if (!id(suspend_sent) && timeout_min > 0 && id(no_presence_since_ms) > 0) {
+            uint32_t elapsed_ms = millis() - id(no_presence_since_ms);
+            if (elapsed_ms >= (uint32_t)(timeout_min * 60000.0f)) {
+              id(suspend_sent) = true;
+            }
           }
 
           ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -229,19 +236,46 @@ interval:
             ESP_LOGI("status", "  👤 Person 3: %.0fmm entfernt", id(dist3).state);
           }
 
-          if (id(desk_occupied).state) {
-            if (active_count == 0 && id(no_presence_since_ms) > 0) {
-              uint32_t elapsed_s = (millis() - id(no_presence_since_ms)) / 1000;
-              uint32_t remaining_s = ${desk_timeout_s} > elapsed_s ? ${desk_timeout_s} - elapsed_s : 0;
-              ESP_LOGW("status", "  💻 PC-Status: AN - aber seit %ds niemand erkannt!", elapsed_s);
-              ESP_LOGW("status", "  ⏱ PC suspend in %ds", remaining_s);
-            } else {
-              ESP_LOGI("status", "  💻 PC-Status: AN (Schreibtisch belegt)");
-            }
-          } else {
+          if (desk_close) {
+            ESP_LOGI("status", "  💻 PC-Status: AN (Schreibtisch belegt)");
+          } else if (timeout_min <= 0) {
+            ESP_LOGI("status", "  💻 PC-Status: AN (Suspend deaktiviert)");
+          } else if (id(suspend_sent)) {
             ESP_LOGW("status", "  💻 PC-Status: SUSPEND (Befehl gesendet)");
+          } else if (id(no_presence_since_ms) > 0) {
+            uint32_t elapsed_s = (millis() - id(no_presence_since_ms)) / 1000;
+            uint32_t timeout_s = (uint32_t)(timeout_min * 60.0f);
+            uint32_t remaining_s = timeout_s > elapsed_s ? timeout_s - elapsed_s : 0;
+            ESP_LOGW("status", "  💻 PC-Status: AN - aber seit %ds niemand erkannt!", elapsed_s);
+            ESP_LOGW("status", "  ⏱ PC suspend in %ds (Timeout: %.0fmin)", remaining_s, timeout_min);
           }
           ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      - if:
+          condition:
+            lambda: 'return id(suspend_sent) && id(no_presence_since_ms) > 0;'
+          then:
+            - logger.log:
+                level: WARN
+                format: "⚠️ NIEMAND am Schreibtisch - PC wird suspendiert..."
+                tag: "pc_control"
+            - delay: 3s
+            - http_request.post:
+                url: "http://192.168.178.72:5000/suspend"
+                on_response:
+                  then:
+                    - logger.log:
+                        level: INFO
+                        format: "✅ Suspend-Befehl an PC gesendet"
+                        tag: "pc_control"
+                on_error:
+                  then:
+                    - logger.log:
+                        level: ERROR
+                        format: "❌ PC Suspend fehlgeschlagen!"
+                        tag: "pc_control"
+            - globals.set:
+                id: no_presence_since_ms
+                value: '0'
 
 # ========== Manuelle Test-Buttons (optional) ==========
 button:
