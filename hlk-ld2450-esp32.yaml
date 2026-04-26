@@ -127,13 +127,9 @@ sensor:
     
     target_1:
       distance:
-        name: "Person 1 Entfernung"
-        id: dist1
-        unit_of_measurement: "mm"
+        id: dist1_raw
+        internal: true
         filters:
-          - lambda: |-
-              if (x < 0 || x > ${max_distance_mm}) return {};
-              return x;
           - throttle: 500ms
       x:
         id: x1
@@ -141,16 +137,12 @@ sensor:
       y:
         id: tgt_y1
         internal: true
-    
+
     target_2:
       distance:
-        name: "Person 2 Entfernung"
-        id: dist2
-        unit_of_measurement: "mm"
+        id: dist2_raw
+        internal: true
         filters:
-          - lambda: |-
-              if (x < 0 || x > ${max_distance_mm}) return {};
-              return x;
           - throttle: 500ms
       x:
         id: x2
@@ -158,16 +150,12 @@ sensor:
       y:
         id: tgt_y2
         internal: true
-    
+
     target_3:
       distance:
-        name: "Person 3 Entfernung"
-        id: dist3
-        unit_of_measurement: "mm"
+        id: dist3_raw
+        internal: true
         filters:
-          - lambda: |-
-              if (x < 0 || x > ${max_distance_mm}) return {};
-              return x;
           - throttle: 500ms
       x:
         id: x3
@@ -175,6 +163,43 @@ sensor:
       y:
         id: tgt_y3
         internal: true
+
+  # Template-Sensoren mit target_count-Gating gegen veraltete Werte
+  - platform: template
+    name: "Person 1 Entfernung"
+    id: dist1
+    unit_of_measurement: "mm"
+    update_interval: 500ms
+    lambda: |-
+      float tc = id(target_count).state;
+      if (isnan(tc) || tc < 1) return 0.0f;
+      float d = id(dist1_raw).state;
+      if (isnan(d) || d <= 0 || d > ${max_distance_mm}) return 0.0f;
+      return d;
+
+  - platform: template
+    name: "Person 2 Entfernung"
+    id: dist2
+    unit_of_measurement: "mm"
+    update_interval: 500ms
+    lambda: |-
+      float tc = id(target_count).state;
+      if (isnan(tc) || tc < 2) return 0.0f;
+      float d = id(dist2_raw).state;
+      if (isnan(d) || d <= 0 || d > ${max_distance_mm}) return 0.0f;
+      return d;
+
+  - platform: template
+    name: "Person 3 Entfernung"
+    id: dist3
+    unit_of_measurement: "mm"
+    update_interval: 500ms
+    lambda: |-
+      float tc = id(target_count).state;
+      if (isnan(tc) || tc < 3) return 0.0f;
+      float d = id(dist3_raw).state;
+      if (isnan(d) || d <= 0 || d > ${max_distance_mm}) return 0.0f;
+      return d;
 
 binary_sensor:
   - platform: ld2450

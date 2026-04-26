@@ -69,13 +69,41 @@ SS SS       = Target 1 Speed (mm/s)
 
 #### Filter-Logik
 
+Die ld2450-Distanz-Sensoren sind intern (`_raw`). Template-Sensoren wrappen sie mit `target_count`-Gating:
+
 ```yaml
-filters:
-  - lambda: |-
-      if (x < 0 || x > 6000) return {};  # Phantom-Targets rausfiltern (>6m)
-      return x;
-  - throttle: 500ms
+# Intern (kein HA-Export)
+target_1:
+  distance:
+    id: dist1_raw
+    internal: true
+    filters:
+      - throttle: 500ms
+
+# Template-Sensor mit target_count-Gate + NaN-Schutz
+- platform: template
+  name: "Person 2 Entfernung"
+  id: dist2
+  lambda: |-
+    float tc = id(target_count).state;
+    if (isnan(tc) || tc < 2) return 0.0f;
+    float d = id(dist2_raw).state;
+    if (isnan(d) || d <= 0 || d > 6000) return 0.0f;
+    return d;
+  update_interval: 500ms
 ```
+
+**Warum template statt direkte ld2450-Sensoren?**
+
+Der ld2450-ESPHome-Komponente sendet **keine Updates** für inaktive Target-Slots. Wenn Person 2 weg ist, bleibt `dist2_raw` am letzten Wert stehen (z.B. 1760mm) bis eine neue Person in Slot 2 erkannt wird. Das `target_count`-Gate setzt `dist2` auf 0 sobald der Radar nur noch 1 Person meldet, unabhängig vom veralteten `dist2_raw`-Wert.
+
+**Wichtig: NaN-Check ist zwingend!**
+
+Sensor-`state` ist initial `NAN` (kein Wert empfangen). IEEE754-Vergleiche mit NaN sind immer `false`:
+- `NAN < 1` = `false` → kein early return, NaN wird weitergegeben
+- `NAN <= 0` = `false`, `NAN > 6000` = `false` → Bereich-Check greift nicht
+
+Ohne `isnan()`-Guard liefern die Template-Sensoren beim Startup NaN statt 0.0f, was zu falschen Auswertungen in `desk_occupied` und der Interval-Logik führen kann.
 
 ### PC Suspend Service
 
@@ -339,6 +367,31 @@ Ohne diese Regel schlägt der HTTP-Request vom ESP32 mit `ESP_ERR_HTTP_CONNECT` 
 - **Framework:** ESP-IDF
 - **Board:** esp32dev
 
+### ESPHome Docker Setup
+
+ESPHome läuft als Docker-Container (Name: `esphome`) auf dem Server `192.168.178.192:6052`.
+
+- **Config-Mount:** `/home/schorsch/esphome/config` → `/config` (im Container)
+- **Web-UI:** http://192.168.178.192:6052
+- **Service:** `/etc/systemd/system/esphome.service`
+
+**Kompilieren und OTA-Flash:**
+```bash
+docker exec esphome esphome run /config/hlk-ld2450-esp32.yaml --no-logs
+```
+
+**Logs streamen:**
+```bash
+docker exec esphome esphome logs /config/hlk-ld2450-esp32.yaml
+```
+
+**Build-Cache leeren (bei CMake-Konflikten):**
+```bash
+docker exec esphome rm -rf /config/.esphome/build/radar-sensor/.pioenvs
+```
+
+**Bekannter Fallstrick:** Nach Integrations-Wechseln kann der CMake-Cache einen Fehler "Multiple ways to build the same target" produzieren (z.B. `esp_efuse_fields.c`). Dann `.pioenvs` löschen und neu bauen.
+
 ### Sensor Spezifikationen
 
 - **Typ:** HLK-LD2450
@@ -474,6 +527,16 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.2 (2026-04-26)
+- NaN-Schutz in Template-Sensor-Lambdas: `isnan()`-Check für `target_count` und Distanzwerte
+- Fix: Beim Startup wurden NaN-Werte statt 0.0f zurückgegeben (IEEE754: `NAN < 1` = false)
+- Dokumentation: Fallstrick NaN in Lambdas und einmaliger Post-OTA-Crash erklärt
+
+### v1.1 (2026-04-26)
+- Distanz-Sensoren als interne `_raw`-Sensoren umgebaut
+- Template-Sensoren mit `target_count`-Gating gegen veraltete Stale-Werte
+- Fix: `Anzahl Personen gesamt=1` aber `dist2=1760mm` (stale) wurde fälschlich als aktiv angezeigt
+
 ### v1.0 (2026-04-20)
 - Initiales Setup
 - ESP32 + HLK-LD2450 Integration
@@ -489,6 +552,34 @@ sudo journalctl --vacuum-time=7d
 1. **Still-Target-Detection** nicht perfekt → Empfindlichkeit in App anpassen
 2. **Phantom-Targets** bei Reflexionen → Ignore Zones setzen
 3. **Boot Counter sehr hoch** (392) → Frühere Stromprobleme, aktuell stabil
+
+### Fallstricke
+
+#### NaN in Sensor-Lambdas (IEEE754)
+
+Sensor-`state` ist beim Startup `NAN` bis zum ersten UART-Frame. IEEE754-Vergleiche mit NaN sind **immer false**:
+
+```cpp
+if (NAN < 1)        // false → kein early return!
+if (NAN <= 0)       // false → Bereich-Check greift nicht!
+if (NAN > 6000)     // false → Bereich-Check greift nicht!
+```
+
+**Konsequenz:** Lambdas geben NaN zurück statt 0.0f. Das verursacht keinen direkten Crash (Xtensa-CPU konvertiert NaN→0 bei float-to-int), aber falsches logisches Verhalten.
+
+**Fix:** Immer `isnan()` explizit prüfen:
+```cpp
+float tc = id(target_count).state;
+if (isnan(tc) || tc < 1) return 0.0f;
+float d = id(dist1_raw).state;
+if (isnan(d) || d <= 0 || d > 6000) return 0.0f;
+```
+
+#### Einmaliger Post-OTA Crash (exception/panic)
+
+Nach einem OTA-Flash kann der ESP32 einmalig mit `exception/panic` neu starten (Uptime ~60s). Ursache: NVS-Partition wird beim ersten Boot mit neuen Sensor-Hashes beschrieben (Sensor-IDs haben sich durch Umbenennung geändert). Nach dem zweiten Boot läuft der ESP stabil. **Kein weiterer Handlungsbedarf wenn der ESP danach stabil läuft.**
+
+Erkennungszeichen: `Letzter Reset-Grund: exception/panic` direkt nach OTA, danach keine weiteren Crashes.
 
 ### TODO
 
@@ -508,7 +599,7 @@ sudo journalctl --vacuum-time=7d
 
 ---
 
-**Zuletzt aktualisiert:** 2026-04-20  
+**Zuletzt aktualisiert:** 2026-04-26  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch
