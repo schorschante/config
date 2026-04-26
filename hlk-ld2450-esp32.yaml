@@ -188,9 +188,11 @@ binary_sensor:
     name: "Person am Schreibtisch"
     id: desk_occupied
     lambda: |-
+      if (!id(anyone_present).state) return false;
+
       bool someone_close = false;
       int close_count = 0;
-      
+
       if (id(dist1).state > 0 && id(dist1).state < id(desk_distance_num).state) {
         someone_close = true;
         close_count++;
