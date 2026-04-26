@@ -55,6 +55,18 @@ globals:
 
 number:
   - platform: template
+    name: "Schreibtisch Entfernung"
+    id: desk_distance_num
+    icon: "mdi:ruler"
+    unit_of_measurement: "mm"
+    min_value: 500
+    max_value: 6000
+    step: 100
+    initial_value: ${desk_distance_mm}
+    restore_value: true
+    optimistic: true
+
+  - platform: template
     name: "PC Suspend Timeout"
     id: suspend_timeout_min
     icon: "mdi:timer-sleep"
@@ -166,15 +178,15 @@ binary_sensor:
       bool someone_close = false;
       int close_count = 0;
       
-      if (id(dist1).state > 0 && id(dist1).state < ${desk_distance_mm}) {
+      if (id(dist1).state > 0 && id(dist1).state < id(desk_distance_num).state) {
         someone_close = true;
         close_count++;
       }
-      if (id(dist2).state > 0 && id(dist2).state < ${desk_distance_mm}) {
+      if (id(dist2).state > 0 && id(dist2).state < id(desk_distance_num).state) {
         someone_close = true;
         close_count++;
       }
-      if (id(dist3).state > 0 && id(dist3).state < ${desk_distance_mm}) {
+      if (id(dist3).state > 0 && id(dist3).state < id(desk_distance_num).state) {
         someone_close = true;
         close_count++;
       }

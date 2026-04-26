@@ -47,7 +47,7 @@ HLK-LD2450          ESP32
 #### Wichtige Parameter
 
 - **UART:** GPIO16 (RX), GPIO17 (TX), 256000 Baud, RX Buffer 2048
-- **Distanz-Schwelle:** 2000mm (2 Meter) — `desk_distance_mm`
+- **Distanz-Schwelle:** konfigurierbar per Web-UI ("Schreibtisch Entfernung", 500–6000mm), Standard: 2000mm (2 Meter)
 - **Suspend Timeout:** konfigurierbar per Web-UI ("PC Suspend Timeout", 0–60 min, 0 = deaktiviert), Standard: 5 min
 - **Safety Delay:** 3 Sekunden (zusätzlicher Delay vor Suspend)
 - **Throttle:** 500ms (Sensor-Update-Rate)
@@ -195,10 +195,10 @@ curl http://localhost:5000/status
 
 #### Distanz-Schwelle ändern
 
-Oben in den `substitutions` anpassen:
-```yaml
-desk_distance_mm: "2500"  # 2,5m statt 2m
-```
+**Über Web-UI konfigurierbar** (kein Reflash nötig):
+- Web-UI öffnen: `http://ESP32_IP`
+- "Schreibtisch Entfernung" auf gewünschten Wert setzen (500–6000mm, Schritt: 100mm)
+- Wert wird auf dem Gerät gespeichert (überlebt Neustart)
 
 #### Verzögerung ändern
 
