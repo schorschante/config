@@ -155,7 +155,7 @@ curl http://localhost:5000/status
    - Status-Log alle 30s: "AN - aber seit Xs niemand erkannt! PC suspend in Ys"
    - Nach konfiguriertem Timeout (Web-UI): `suspend_sent` = true
    - Warte weitere 3 Sekunden (Safety Delay)
-   - Sende HTTP POST zu `http://192.168.178.110:5000/suspend`
+   - Sende HTTP POST zu `http://<PC-IP>:5000/suspend`
    - PC suspendiert
    - Log: "⚠️ NIEMAND am Schreibtisch - PC wird suspendiert..."
 
@@ -210,9 +210,10 @@ curl http://localhost:5000/status
 
 #### PC-IP ändern
 
-```yaml
-url: "http://NEUE_IP:5000/suspend"
-```
+**Über Web-UI konfigurierbar** (kein Reflash nötig):
+- Web-UI öffnen: `http://ESP32_IP`
+- "PC IP-Adresse" auf die neue IP setzen
+- Wert wird auf dem Gerät gespeichert (überlebt Neustart)
 
 ## Debugging
 
@@ -316,7 +317,7 @@ sudo firewall-cmd --reload
 
 ### IP-Adressen
 
-- **PC:** `192.168.178.110`
+- **PC:** `192.168.178.110` (konfigurierbar per Web-UI — "PC IP-Adresse")
 - **ESP32:** Via DHCP (in Web-UI oder Logs sichtbar)
 - **Service Port:** `5000` (HTTP)
 

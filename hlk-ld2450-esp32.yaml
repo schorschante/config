@@ -78,6 +78,19 @@ number:
     restore_value: true
     optimistic: true
 
+# ========== PC IP Adresse ==========
+text:
+  - platform: template
+    name: "PC IP-Adresse"
+    id: pc_ip
+    icon: "mdi:ip-network"
+    initial_value: "192.168.178.110"
+    restore_value: true
+    optimistic: true
+    mode: text
+    min_length: 7
+    max_length: 15
+
 # ========== HTTP Request ==========
 http_request:
   timeout: 3s
@@ -272,7 +285,7 @@ interval:
                 tag: "pc_control"
             - delay: 3s
             - http_request.post:
-                url: "http://192.168.178.110:5000/suspend"
+                url: !lambda 'return "http://" + id(pc_ip).state + ":5000/suspend";'
                 on_response:
                   then:
                     - logger.log:
@@ -298,7 +311,7 @@ button:
           level: INFO
           format: "🔍 Teste Verbindung zum PC..."
       - http_request.get:
-          url: "http://192.168.178.110:5000/status"
+          url: !lambda 'return "http://" + id(pc_ip).state + ":5000/status";'
           on_response:
             then:
               - logger.log:
