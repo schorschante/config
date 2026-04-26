@@ -21,7 +21,7 @@ logger:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  fast_connect: true
+
   power_save_mode: none
   
   ap:
@@ -326,7 +326,15 @@ switch:
       name: "Multi-Target Modus"
       icon: "mdi:account-multiple"
 
+debug:
+
 text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Letzter Reset-Grund"
+      icon: "mdi:restart-alert"
+      entity_category: diagnostic
+
   - platform: wifi_info
     ip_address:
       name: "IP-Adresse"

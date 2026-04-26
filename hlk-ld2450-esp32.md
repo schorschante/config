@@ -216,6 +216,21 @@ url: "http://NEUE_IP:5000/suspend"
 
 ## Debugging
 
+### Crash-Diagnose
+
+**"Letzter Reset-Grund"** in der Web-UI zeigt den Grund des letzten Reboots:
+
+| Wert | Bedeutung |
+|------|-----------|
+| Power On | Normaler Start oder USB-Flash (esptool RTS-Reset) |
+| Software Reset (OTA) | OTA-Update erfolgreich |
+| Panic/Crash | Software-Fehler → Logs prüfen |
+| Task Watchdog | Task hat zu lange geblockt |
+| Interrupt Watchdog | Interrupt-Handler zu langsam |
+| Brownout | Stromversorgung zu schwach |
+
+**Wichtig:** Nach einem USB-Flash steht immer "Power On" (esptool macht Hardware-Reset). Der echte Crash-Grund ist nur sichtbar wenn der ESP32 **von selbst** neu bootet. Stecker ziehen also nur wenn der ESP gar nicht mehr reagiert — nicht zur Diagnose.
+
 ### ESP32 Logs
 
 ```bash
