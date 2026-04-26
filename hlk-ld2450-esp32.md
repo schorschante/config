@@ -155,7 +155,7 @@ curl http://localhost:5000/status
    - Status-Log alle 30s: "AN - aber seit Xs niemand erkannt! PC suspend in Ys"
    - Nach konfiguriertem Timeout (Web-UI): `suspend_sent` = true
    - Warte weitere 3 Sekunden (Safety Delay)
-   - Sende HTTP POST zu `http://192.168.178.72:5000/suspend`
+   - Sende HTTP POST zu `http://192.168.178.110:5000/suspend`
    - PC suspendiert
    - Log: "⚠️ NIEMAND am Schreibtisch - PC wird suspendiert..."
 
@@ -316,7 +316,7 @@ sudo firewall-cmd --reload
 
 ### IP-Adressen
 
-- **PC:** `192.168.178.72`
+- **PC:** `192.168.178.110`
 - **ESP32:** Via DHCP (in Web-UI oder Logs sichtbar)
 - **Service Port:** `5000` (HTTP)
 

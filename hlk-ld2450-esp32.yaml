@@ -80,7 +80,7 @@ number:
 
 # ========== HTTP Request ==========
 http_request:
-  timeout: 5s
+  timeout: 3s
   verify_ssl: false
   watchdog_timeout: 15s
 
@@ -272,7 +272,7 @@ interval:
                 tag: "pc_control"
             - delay: 3s
             - http_request.post:
-                url: "http://192.168.178.72:5000/suspend"
+                url: "http://192.168.178.110:5000/suspend"
                 on_response:
                   then:
                     - logger.log:
@@ -298,7 +298,7 @@ button:
           level: INFO
           format: "🔍 Teste Verbindung zum PC..."
       - http_request.get:
-          url: "http://192.168.178.72:5000/status"
+          url: "http://192.168.178.110:5000/status"
           on_response:
             then:
               - logger.log:
@@ -317,7 +317,7 @@ button:
           level: WARN
           format: "⚠️ Manueller Suspend-Befehl..."
       - http_request.post:
-          url: "http://192.168.178.72:5000/suspend"
+          url: "http://192.168.178.110:5000/suspend"
 
 switch:
   - platform: ld2450
