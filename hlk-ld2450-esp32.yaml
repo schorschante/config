@@ -23,7 +23,8 @@ wifi:
   password: !secret wifi_password
 
   power_save_mode: none
-  
+  reboot_timeout: 15min
+
   ap:
     ssid: "${friendly_name} Fallback"
     password: "esphome123"
@@ -49,6 +50,10 @@ globals:
     restore_value: false
     initial_value: '0'
   - id: suspend_sent
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: suspend_http_sent
     type: bool
     restore_value: false
     initial_value: 'false'
@@ -115,7 +120,35 @@ sensor:
     name: "Uptime"
     id: uptime_sensor
     update_interval: 60s
-  
+
+  - platform: template
+    name: "Heap Frei"
+    id: heap_free
+    unit_of_measurement: "B"
+    update_interval: 30s
+    entity_category: diagnostic
+    lambda: |-
+      return heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+
+  - platform: template
+    name: "Heap Gesamt"
+    id: heap_total
+    unit_of_measurement: "B"
+    update_interval: 60s
+    entity_category: diagnostic
+    lambda: |-
+      return heap_caps_get_total_size(MALLOC_CAP_DEFAULT);
+
+  - platform: template
+    name: "Heap Größter Block"
+    id: heap_block
+    unit_of_measurement: "B"
+    update_interval: 30s
+    entity_category: diagnostic
+    lambda: |-
+      return heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT);
+
+
   - platform: ld2450
     ld2450_id: ld2450_radar
     
@@ -261,6 +294,7 @@ interval:
           if (desk_close) {
             id(no_presence_since_ms) = 0;
             id(suspend_sent) = false;
+            id(suspend_http_sent) = false;
           } else if (id(no_presence_since_ms) == 0) {
             id(no_presence_since_ms) = millis();
           }
@@ -304,7 +338,7 @@ interval:
           ESP_LOGI("status", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       - if:
           condition:
-            lambda: 'return id(suspend_sent) && id(no_presence_since_ms) > 0;'
+            lambda: 'return id(suspend_sent) && id(no_presence_since_ms) > 0 && !id(suspend_http_sent);'
           then:
             - logger.log:
                 level: WARN
@@ -326,8 +360,8 @@ interval:
                         format: "❌ PC Suspend fehlgeschlagen!"
                         tag: "pc_control"
             - globals.set:
-                id: no_presence_since_ms
-                value: '0'
+                id: suspend_http_sent
+                value: 'true'
 
 # ========== Manuelle Test-Buttons (optional) ==========
 button:

@@ -527,6 +527,11 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.3 (2026-04-27)
+- Fix: Wiederholter HTTP POST-Bug — ESP32 sendete alle 30s erneut Suspend nach erstem Send
+- Ursache: `no_presence_since_ms = 0` nach HTTP POST → Else-If setzte Timer sofort neu → Bedingung war immer true
+- Fix: Neues `suspend_http_sent`-Flag verhindert Wiederholung; Reset nur wenn Person zurückkommt
+
 ### v1.2 (2026-04-26)
 - NaN-Schutz in Template-Sensor-Lambdas: `isnan()`-Check für `target_count` und Distanzwerte
 - Fix: Beim Startup wurden NaN-Werte statt 0.0f zurückgegeben (IEEE754: `NAN < 1` = false)
