@@ -527,6 +527,14 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.4 (2026-05-03)
+- Fix: Reguläre Crashes durch Web Server Version 3 (SSE double-free Bug in ESPHome 2026.1.0)
+- Ursache: `AsyncEventSourceResponse::deferrable_send_state()` gibt `DeferredEvent`-Pointer auf ungültigen Speicher frei beim Iterieren über Text-Entitäten → `heap_caps_free` Assertion → exception/panic
+- Fix: `web_server: version: 2` statt `version: 3` — kein SSE, kein Bug
+- Symptom war: Crash immer wenn Web-UI im Browser geöffnet wurde
+- Backtrace-Analyse mit `xtensa-esp32-elf-addr2line` genutzt zur Diagnose
+- Serial-Monitor-Technik: `stty -hupcl` verhindert DTR-Reset beim Port-Open
+
 ### v1.3 (2026-04-27)
 - Fix: Wiederholter HTTP POST-Bug — ESP32 sendete alle 30s erneut Suspend nach erstem Send
 - Ursache: `no_presence_since_ms = 0` nach HTTP POST → Else-If setzte Timer sofort neu → Bedingung war immer true
@@ -556,7 +564,6 @@ sudo journalctl --vacuum-time=7d
 
 1. **Still-Target-Detection** nicht perfekt → Empfindlichkeit in App anpassen
 2. **Phantom-Targets** bei Reflexionen → Ignore Zones setzen
-3. **Boot Counter sehr hoch** (392) → Frühere Stromprobleme, aktuell stabil
 
 ### Fallstricke
 
@@ -586,6 +593,51 @@ Nach einem OTA-Flash kann der ESP32 einmalig mit `exception/panic` neu starten (
 
 Erkennungszeichen: `Letzter Reset-Grund: exception/panic` direkt nach OTA, danach keine weiteren Crashes.
 
+#### Web Server Version 3 — SSE Double-Free Bug (ESPHome 2026.1.0)
+
+**Web Server Version 3 darf nicht verwendet werden (ESPHome 2026.1.0)!**
+
+`web_server: version: 3` nutzt Server-Sent Events (SSE) über `AsyncEventSource`. In ESPHome 2026.1.0 gibt es einen double-free Bug in `AsyncEventSourceResponse::deferrable_send_state()` (web_server_idf.cpp:804): Beim Iterieren über Entitäten (speziell Text-Entitäten) wird ein `DeferredEvent`-Pointer auf ungültigen Speicher freigegeben → `heap_caps_free` Assertion → `exception/panic`.
+
+**Symptom:** Crash jedes Mal wenn jemand die Web-UI öffnet. `Letzter Reset-Grund: exception/panic`. Heap scheinbar gesund (kein Low-Memory). Backtrace zeigt:
+```
+assert failed: heap_caps_free heap_caps_base.c:80
+  → operator delete(DeferredEvent*)
+  → AsyncEventSourceResponse::deferrable_send_state()
+  → ListEntitiesIterator::on_sensor()
+  → WebServer::loop()
+```
+
+**Fix:** `version: 2` statt `version: 3`. Version 2 nutzt REST-Polling statt SSE — kein AsyncEventSource, kein Bug. Nachteil: Web-UI aktualisiert sich nicht live, manuelles Refresh nötig.
+
+```yaml
+web_server:
+  port: 80
+  version: 2   # NICHT version: 3 (SSE-Bug in ESPHome 2026.1.0)
+```
+
+#### Backtrace dekodieren
+
+Bei `exception/panic` gibt der ESP32 beim Neustart eine Backtrace auf Serial aus. Dekodieren mit:
+
+```bash
+ELF=/home/schorsch/esphome/config/.esphome/build/radar-sensor/.pioenvs/radar-sensor/firmware.elf
+TOOL=/home/schorsch/.platformio/packages/toolchain-xtensa-esp-elf/bin/xtensa-esp32-elf-addr2line
+
+for addr in 0x400xxxxx 0x400yyyyy; do
+  $TOOL -e $ELF -f -C $addr
+done
+```
+
+Serial-Capture ohne ESP32-Reset (Linux DTR-Problem umgehen):
+
+```bash
+stty -F /dev/ttyUSB0 raw speed 115200 -hupcl cs8 -parenb -cstopb
+cat /dev/ttyUSB0 >> /tmp/esp32_log.txt &
+```
+
+**Wichtig:** Normales `cat /dev/ttyUSB0` oder `screen` triggern einen Reset (DTR wird beim Port-Open kurz gesetzt). Der obige `stty -hupcl` Trick minimiert das Problem.
+
 ### TODO
 
 - [ ] Wake-on-LAN Integration
@@ -604,7 +656,7 @@ Erkennungszeichen: `Letzter Reset-Grund: exception/panic` direkt nach OTA, danac
 
 ---
 
-**Zuletzt aktualisiert:** 2026-04-26  
+**Zuletzt aktualisiert:** 2026-05-03  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch
