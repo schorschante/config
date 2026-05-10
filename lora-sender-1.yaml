@@ -10,16 +10,22 @@ esp32:
 logger:
 
 api:
+  reboot_timeout: 0s
 
 ota:
-  platform: esphome
+  - platform: esphome
+    password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  reboot_timeout: 15min
 
 web_server:
   port: 80
+  version: 2
+
+debug:
 
 spi:
   clk_pin: GPIO5
@@ -40,6 +46,22 @@ sx127x:
   crc_enable: true
   sync_value: 0x12
   preamble_size: 8
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+    update_interval: 60s
+
+text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Letzter Reset-Grund"
+      icon: "mdi:restart-alert"
+      entity_category: diagnostic
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP-Adresse"
 
 interval:
   - interval: 120s
