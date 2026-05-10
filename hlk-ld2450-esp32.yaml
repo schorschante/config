@@ -1,10 +1,8 @@
 substitutions:
   name: "radar-sensor"
   friendly_name: "HLK-LD2450 Radar"
-  max_distance_mm: "6000"       # Maximale Erkennungsreichweite (6000mm = 6m)
-  desk_distance_mm: "2000"      # Schreibtisch-Schwelle (2000mm = 2m)
-  desk_timeout: "5min"          # Verzögerung bis "frei"
-  desk_timeout_s: "300"         # Gleicher Wert in Sekunden (für Berechnungen)
+  max_distance_mm: "6000"
+  desk_distance_mm: "2000"
 
 esphome:
   name: ${name}
@@ -13,7 +11,7 @@ esphome:
 esp32:
   board: esp32dev
   framework:
-    type: esp-idf
+    type: arduino
 
 logger:
   level: INFO
@@ -98,9 +96,9 @@ text:
 
 # ========== HTTP Request ==========
 http_request:
-  timeout: 3s
+  timeout: 500ms
   verify_ssl: false
-  watchdog_timeout: 15s
+  watchdog_timeout: 3s
 
 uart:
   id: uart_ld2450
@@ -391,7 +389,7 @@ button:
           level: WARN
           format: "⚠️ Manueller Suspend-Befehl..."
       - http_request.post:
-          url: "http://192.168.178.110:5000/suspend"
+          url: !lambda 'return "http://" + id(pc_ip).state + ":5000/suspend";'
 
 switch:
   - platform: ld2450
@@ -399,6 +397,7 @@ switch:
     multi_target:
       name: "Multi-Target Modus"
       icon: "mdi:account-multiple"
+      restore_mode: ALWAYS_ON
 
 debug:
 

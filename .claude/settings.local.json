@@ -3,7 +3,14 @@
     "allow": [
       "Bash(docker run *)",
       "Bash(docker exec *)",
-      "Bash(ping -c 5 192.168.178.78)"
+      "Bash(ping -c 5 192.168.178.78)",
+      "Bash(curl -s --connect-timeout 5 http://192.168.178.78/)",
+      "Bash(grep -v \"Raum-Status\\\\|━━━\\\\|Person\\\\|PC-Status\\\\|Gesamt\\\\|Verbinde\\\\|unterbrochen\" /tmp/esp32_esphome_log.txt | tail -40)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f esp32_log_capture.sh)",
+      "Bash(nohup bash /tmp/esp32_log_capture.sh)",
+      "Bash(echo \"Log-Capture neu gestartet, PID: $!\")",
+      "Bash(ping -c 1 -W 2 192.168.178.187)"
     ]
   }
 }

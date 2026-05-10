@@ -364,7 +364,7 @@ Ohne diese Regel schlägt der HTTP-Request vom ESP32 mit `ESP_ERR_HTTP_CONNECT` 
 ### ESPHome Version
 
 - **ESPHome:** 2026.1.0
-- **Framework:** ESP-IDF
+- **Framework:** Arduino
 - **Board:** esp32dev
 
 ### ESPHome Docker Setup
@@ -527,6 +527,23 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.7 (2026-05-08)
+- Board-Wechsel: defektes ESP32-Board durch neues ersetzt
+- Diagnose per Monitoring: neues Board mit identischer Firmware stabil (1 Drop/3h, 10s Erholung); altes Board: Drops bis Stunden, keine selbstständige Erholung
+- Ursache der gesamten Instabilität war das defekte Board — nicht Firmware, Sensor, Netzteil oder Mesh
+- Devolo-Mesh (AP-Steering via DEAUTH) verursacht gelegentliche kurze Drops; neues Board erholt sich davon in <30s
+- 802.11r (Fast Roaming) in Fritzbox deaktiviert — weniger aggressive DEAUTH-basierte Steuerung
+- Unused Substitutionen `desk_timeout`/`desk_timeout_s` entfernt
+- MANUELL-Button nutzt jetzt `pc_ip` statt hardcodierter IP
+
+### v1.6 (2026-05-07)
+- HTTP Request Timeout von 3s auf 500ms reduziert, watchdog_timeout von 15s auf 3s
+- BSSID-Lock entfernt (Devolo Mesh-Roaming macht Single-BSSID kontraproduktiv)
+
+### v1.5 (2026-05-06)
+- Framework-Wechsel: ESP-IDF → Arduino
+- USB-Flash wegen Framework-Wechsel erforderlich
+
 ### v1.4 (2026-05-03)
 - Fix: Reguläre Crashes durch Web Server Version 3 (SSE double-free Bug in ESPHome 2026.1.0)
 - Ursache: `AsyncEventSourceResponse::deferrable_send_state()` gibt `DeferredEvent`-Pointer auf ungültigen Speicher frei beim Iterieren über Text-Entitäten → `heap_caps_free` Assertion → exception/panic
@@ -656,7 +673,7 @@ cat /dev/ttyUSB0 >> /tmp/esp32_log.txt &
 
 ---
 
-**Zuletzt aktualisiert:** 2026-05-03  
+**Zuletzt aktualisiert:** 2026-05-08  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch
