@@ -7,6 +7,10 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100
+    then:
+      - switch.turn_on: multi_target
 
 esp32:
   board: esp32dev
@@ -396,6 +400,7 @@ switch:
     ld2450_id: ld2450_radar
     multi_target:
       name: "Multi-Target Modus"
+      id: multi_target
       icon: "mdi:account-multiple"
       restore_mode: ALWAYS_ON
 
