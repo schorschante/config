@@ -10,7 +10,20 @@
       "Bash(pkill -f esp32_log_capture.sh)",
       "Bash(nohup bash /tmp/esp32_log_capture.sh)",
       "Bash(echo \"Log-Capture neu gestartet, PID: $!\")",
-      "Bash(ping -c 1 -W 2 192.168.178.187)"
+      "Bash(ping -c 1 -W 2 192.168.178.187)",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs kill)",
+      "Read(//dev/**)",
+      "Bash(grep -vE \"^[[:space:]]*$\")",
+      "Bash(curl -sv --connect-timeout 5 http://192.168.178.38/)",
+      "Bash(curl -s --max-time 8 http://192.168.178.38/text_sensor/lora_last_time)",
+      "Bash(kill 430847)",
+      "Bash(curl -s --max-time 5 -o /dev/null -w \"%{http_code}\" http://192.168.178.38/)",
+      "Bash(stty -F /dev/ttyUSB0 115200)",
+      "Bash(timeout 15 cat /dev/ttyUSB0)",
+      "Bash(grep -vE \"^[[:space:]]*$|Last Packet Age\")",
+      "Bash(ping -c 3 -W 2 192.168.178.38)",
+      "Bash(/home/schorsch/venvs/esphome/bin/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 erase_flash)"
     ]
   }
 }

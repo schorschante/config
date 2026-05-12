@@ -5,7 +5,9 @@ esphome:
 esp32:
   board: esp32dev
   framework:
-    type: arduino
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_LWIP_MAX_SOCKETS: '24'
 
 logger:
 
@@ -30,8 +32,6 @@ web_server:
 
 debug:
 
-captive_portal:
-
 globals:
   - id: last_rssi
     type: float
@@ -45,42 +45,6 @@ globals:
   - id: last_packet_millis
     type: uint32_t
     initial_value: '0'
-
-i2c:
-  sda: GPIO21
-  scl: GPIO22
-
-font:
-  - file: "gfonts://Roboto"
-    id: font_small
-    size: 11
-  - file: "gfonts://Roboto"
-    id: font_large
-    size: 22
-    glyphs: "0123456789-. dBm"
-
-display:
-  - platform: ssd1306_i2c
-    model: SH1106_128X64
-    address: 0x3C
-    lambda: |-
-      if (id(packet_count) == 0) {
-        uint32_t secs = millis() / 1000;
-        it.printf(0,  0, id(font_small), "LoRa Empfaenger");
-        it.printf(0, 20, id(font_small), "Kein Paket seit");
-        if (secs < 60)
-          it.printf(0, 34, id(font_small), "%ds", (int)secs);
-        else
-          it.printf(0, 34, id(font_small), "%dm %ds", (int)(secs/60), (int)(secs%60));
-      } else {
-        uint32_t secs = (millis() - id(last_packet_millis)) / 1000;
-        it.printf(0,  0, id(font_small), "RSSI:");
-        it.printf(0, 14, id(font_large), "%.0f dBm", id(last_rssi));
-        if (secs < 60)
-          it.printf(0, 44, id(font_small), "SNR:%.1fdB  seit %ds", id(last_snr), (int)secs);
-        else
-          it.printf(0, 44, id(font_small), "SNR:%.1fdB  seit %dm", id(last_snr), (int)(secs/60));
-      }
 
 spi:
   clk_pin: GPIO5
@@ -168,9 +132,29 @@ text_sensor:
         return {str_sprintf("kein Paket seit %dh %dm", secs/3600, (secs%3600)/60)};
 
 button:
+  - platform: restart
+    name: "Neustart"
+    id: restart_btn
+    internal: true
+
   - platform: template
     name: "LoRa: Testpaket senden"
     on_press:
       then:
         - sx127x.send_packet:
             data: [0xC5, 0x51, 0x78, 0x82, 0xB7, 0xF9, 0x9C, 0x5C]
+
+interval:
+  - interval: 6min
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(packet_count) > 0 &&
+                     (millis() - id(last_packet_millis)) > 360000;
+          then:
+            - logger.log:
+                level: WARN
+                format: "Watchdog: Kein Paket seit 6min, neustart..."
+            - delay: 1s
+            - button.press: restart_btn
