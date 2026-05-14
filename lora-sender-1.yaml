@@ -33,6 +33,7 @@ spi:
   miso_pin: GPIO19
 
 sx127x:
+  id: lora_tx
   dio0_pin: GPIO26
   cs_pin: GPIO18
   rst_pin: GPIO14
@@ -63,9 +64,27 @@ text_sensor:
     ip_address:
       name: "IP-Adresse"
 
+button:
+  - platform: restart
+    name: "Neustart"
+    id: restart_btn
+    internal: true
+
 interval:
   - interval: 120s
     then:
       - sx127x.send_packet:
           data: [0xC5, 0x51, 0x78, 0x82, 0xB7, 0xF9, 0x9C, 0x5C]
       - logger.log: "LoRa Paket gesendet (SF12, 14dBm)"
+
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: 'return id(lora_tx).is_failed();'
+          then:
+            - logger.log:
+                level: WARN
+                format: "Watchdog: sx127x failed - neustart..."
+            - delay: 1s
+            - button.press: restart_btn

@@ -23,7 +23,8 @@
       "Bash(timeout 15 cat /dev/ttyUSB0)",
       "Bash(grep -vE \"^[[:space:]]*$|Last Packet Age\")",
       "Bash(ping -c 3 -W 2 192.168.178.38)",
-      "Bash(/home/schorsch/venvs/esphome/bin/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 erase_flash)"
+      "Bash(/home/schorsch/venvs/esphome/bin/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 erase_flash)",
+      "Bash(curl -s --max-time 5 http://192.168.178.38/)"
     ]
   }
 }
