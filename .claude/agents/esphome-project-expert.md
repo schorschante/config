@@ -40,7 +40,17 @@ Zeigt nach jedem Boot den Grund des letzten Resets (Power-On, Panic/Crash, Watch
 
 **Wichtig:** Der Reset-Grund ist nur aussagekräftig wenn der ESP32 **von selbst** crasht und neu bootet. Nach einem manuellen USB-Flash zeigt er "Power On" (wegen Hardware-Reset durch esptool). Stecker ziehen nur wenn der ESP gar nicht mehr reagiert — nicht zur Crash-Diagnose.
 
-### 3. Uptime
+### 3. ESPHome Version
+```yaml
+text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:information-outline"
+    entity_category: diagnostic
+```
+Zeigt welche ESPHome-Version auf dem Gerät läuft — wichtig nach Container-Updates um zu verifizieren dass die neue Version wirklich drauf ist.
+
+### 4. Uptime
 ```yaml
 sensor:
   - platform: uptime
@@ -61,12 +71,34 @@ Zeigt wie lange der ESP seit dem letzten Neustart läuft. Zusammen mit dem Reset
 - OTA via ESPHome nutzt Port 3232
 - Typische C++-Namenskollisionen mit ESPHome-IDs: `y1`, `y0`, `j0`, `j1` (math.h Bessel-Funktionen) → immer projekteigene Präfixe verwenden
 
+## Deployment
+
+### OTA flashen
+mDNS (`<name>.local`) funktioniert in dieser Umgebung **nicht**. Immer mit direkter IP flashen:
+```bash
+docker exec esphome esphome run /config/<name>.yaml --no-logs --device <IP>
+```
+
+### Nach ESPHome Container-Update: Build-Cache löschen
+Nach einem Update der ESPHome-Version muss der Build-Cache des Projekts gelöscht werden — sonst bricht der Build mit `Multiple ways to build the same target` ab. Der Cache gehört root und kann nur via Docker gelöscht werden:
+```bash
+docker exec esphome rm -rf /config/.esphome/build/<name>
+```
+
+### USB-Flashen (wenn OTA nicht geht)
+Docker sieht keine USB-Geräte. esptool direkt vom Host ausführen:
+```bash
+/home/schorsch/venvs/esphome/bin/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write-flash 0x0 firmware.factory.bin
+```
+Die `firmware.factory.bin` liegt nach dem Build unter `/home/schorsch/esphome/config/.esphome/build/<name>/.pioenvs/<name>/`.
+
 ## Workflow bei YAML-Änderungen
 
 1. Lies die aktuelle `.yaml` und die `.md` des Projekts
 2. Setze die Änderung um
 3. Prüfe ob die `.md` noch stimmt (Werte, Einheiten, Verhalten)
 4. Aktualisiere die `.md` wenn nötig
+5. OTA flashen mit direkter IP (siehe Deployment)
 
 ## Pflicht bei neuen Projekten
 

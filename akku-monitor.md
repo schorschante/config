@@ -2,7 +2,7 @@
 
 ## Projekt-Übersicht
 
-ESP32-basierter Akku-Monitor. Misst die Batteriespannung über einen festen Spannungsteiler (R1=220kΩ, R2=100kΩ). GPIO34 wird alle 10s gelesen und an Home Assistant gemeldet.
+ESP32-basierter Akku-Monitor. Misst die Batteriespannung über einen festen Spannungsteiler (R1=220kΩ, R2=100kΩ). GPIO35 wird alle 10s gelesen und an Home Assistant gemeldet.
 
 ## Hardware
 
@@ -29,7 +29,7 @@ Akku+
 > **Wichtig:** GND des Akkus/Netzteils muss mit GND des ESP32 verbunden sein (gemeinsamer Masse-Bezug). Ohne das liefert der ADC keine verwertbaren Werte.
 
 Teiler-Faktor: R2/(R1+R2) = 100/320 = **0.3125**  
-GPIO34 = Vbat × 0.3125  → bei 4.2V: GPIO34 = 1.31V
+GPIO35 = Vbat × 0.3125  → bei 4.2V: GPIO35 = 1.31V
 
 ### Messbereich
 
@@ -54,6 +54,7 @@ GPIO34 = Vbat × 0.3125  → bei 4.2V: GPIO34 = 1.31V
 | **Akku Spannung** | Sensor | Gemessene Spannung in Volt (alle 10s) |
 | **Akku Ladung** | Sensor | Berechneter Ladestand in % (alle 10s) |
 | **Letzter Reset-Grund** | Text Sensor | Diagnose |
+| **ESPHome Version** | Text Sensor | Installierte ESPHome-Version (Diagnose) |
 | **IP-Adresse** | Text Sensor | WLAN-IP |
 | **Uptime** | Text Sensor | Laufzeit in h/min |
 
@@ -63,9 +64,15 @@ GPIO34 = Vbat × 0.3125  → bei 4.2V: GPIO34 = 1.31V
 filters:
   - multiply: 3.2
   - calibrate_linear:
-      - 0.0 -> 0.0
-      - 10.06 -> 3.98   # Kalibriert 2026-05-15: ESP las 10.06V, Multimeter 3.98V
+      - 3.059 -> 3.0
+      - 3.373 -> 3.3
+      - 3.578 -> 3.5
+      - 3.782 -> 3.7
+      - 3.990 -> 3.9
+      - 4.173 -> 4.1
+      - 4.291 -> 4.2
 ```
+7-Punkt-Kalibrierung durchgeführt 2026-05-15 mit Multimeter über den vollen Spannungsbereich.
 
 Rohwert-Logging für Neukalibrierung (lambda zwischen multiply und calibrate_linear):
 ```yaml
@@ -98,4 +105,4 @@ docker exec esphome esphome logs /config/akku-monitor.yaml
 
 ---
 
-**Zuletzt aktualisiert:** 2026-05-15
+**Zuletzt aktualisiert:** 2026-05-18
