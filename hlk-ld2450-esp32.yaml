@@ -413,6 +413,11 @@ text_sensor:
       icon: "mdi:restart-alert"
       entity_category: diagnostic
 
+  - platform: version
+    name: "ESPHome Version"
+    icon: "mdi:information-outline"
+    entity_category: diagnostic
+
   - platform: wifi_info
     ip_address:
       name: "IP-Adresse"

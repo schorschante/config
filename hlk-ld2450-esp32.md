@@ -527,6 +527,11 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.9 (2026-05-18)
+- ESPHome Version Text-Sensor ergänzt (`platform: version`, entity_category: diagnostic)
+- Sensor war bisher nicht vorhanden — zeigt laufende ESPHome-Version in Web-UI und HA
+- OTA-Flash auf 192.168.178.187 erfolgreich
+
 ### v1.8 (2026-05-18)
 - OTA-Flash auf ESPHome 2026.4.5
 - ESP32-IP `192.168.178.187` dokumentiert (via `getent hosts radar-sensor.local`)
