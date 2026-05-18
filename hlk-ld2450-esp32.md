@@ -346,7 +346,7 @@ sudo firewall-cmd --reload
 ### IP-Adressen
 
 - **PC:** `192.168.178.110` (konfigurierbar per Web-UI — "PC IP-Adresse")
-- **ESP32:** Via DHCP (in Web-UI oder Logs sichtbar)
+- **ESP32:** `192.168.178.187` (DHCP, zuletzt gesehen 2026-05-18)
 - **Service Port:** `5000` (HTTP)
 
 ### Firewall
@@ -363,7 +363,7 @@ Ohne diese Regel schlägt der HTTP-Request vom ESP32 mit `ESP_ERR_HTTP_CONNECT` 
 
 ### ESPHome Version
 
-- **ESPHome:** 2026.1.0
+- **ESPHome:** 2026.4.5
 - **Framework:** Arduino
 - **Board:** esp32dev
 
@@ -527,6 +527,12 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v1.8 (2026-05-18)
+- OTA-Flash auf ESPHome 2026.4.5
+- ESP32-IP `192.168.178.187` dokumentiert (via `getent hosts radar-sensor.local`)
+- Build-Cache (CMakeCache.txt) automatisch von ESPHome bereinigt (Framework-Update)
+- Flash-Befehl: `docker exec esphome esphome run /config/hlk-ld2450-esp32.yaml --no-logs --device 192.168.178.187`
+
 ### v1.7 (2026-05-08)
 - Board-Wechsel: defektes ESP32-Board durch neues ersetzt
 - Diagnose per Monitoring: neues Board mit identischer Firmware stabil (1 Drop/3h, 10s Erholung); altes Board: Drops bis Stunden, keine selbstständige Erholung
@@ -673,7 +679,7 @@ cat /dev/ttyUSB0 >> /tmp/esp32_log.txt &
 
 ---
 
-**Zuletzt aktualisiert:** 2026-05-08  
+**Zuletzt aktualisiert:** 2026-05-18  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch

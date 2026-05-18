@@ -74,10 +74,15 @@ Zeigt wie lange der ESP seit dem letzten Neustart läuft. Zusammen mit dem Reset
 ## Deployment
 
 ### OTA flashen
-mDNS (`<name>.local`) funktioniert in dieser Umgebung **nicht**. Immer mit direkter IP flashen:
+ESPHome's eigener mDNS-Resolver schlägt manchmal fehl. Wenn die IP bekannt ist, direkt angeben:
 ```bash
 docker exec esphome esphome run /config/<name>.yaml --no-logs --device <IP>
 ```
+IP unbekannt? Erst per System-mDNS auflösen:
+```bash
+getent hosts <name>.local
+```
+Schlägt auch das fehl → IP in der MD-Datei des Projekts nachschauen oder im Router suchen.
 
 ### Nach ESPHome Container-Update: Build-Cache löschen
 Nach einem Update der ESPHome-Version muss der Build-Cache des Projekts gelöscht werden — sonst bricht der Build mit `Multiple ways to build the same target` ab. Der Cache gehört root und kann nur via Docker gelöscht werden:
