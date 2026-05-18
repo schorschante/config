@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(arp-scan --localnet)",
+      "Bash(nmap -sn 192.168.178.0/24)",
+      "Bash(ip neigh *)"
+    ]
+  }
+}

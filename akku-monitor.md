@@ -2,85 +2,76 @@
 
 ## Projekt-Übersicht
 
-ESP32-basierter Akku-Monitor. Misst die Batteriespannung über einen schaltbaren Spannungsteiler. Der Transistor trennt den Teiler ab, um Querstrom zu verhindern. GPIO34 wird immer gelesen (alle 10s); ob der Transistor wirklich sperrt, erkennt man am ADC-Floaten (~Vbat statt ~Vbat/2).
+ESP32-basierter Akku-Monitor. Misst die Batteriespannung über einen festen Spannungsteiler (R1=220kΩ, R2=100kΩ). GPIO34 wird alle 10s gelesen und an Home Assistant gemeldet.
 
 ## Hardware
 
 ### Komponenten
 
 - **ESP32 Dev Board** (esp32dev)
-- **Spannungsteiler:** R1 = R2 = 100 kΩ
-- **Transistor:** 2N2222A (NPN)
-- **Basiswiderstand:** 1 kΩ
+- **R1:** 220 kΩ
+- **R2:** 100 kΩ
 
 ### Schaltung
 
 ```
 Akku+
   │
-  R1 (100kΩ)
+  R1 (220kΩ)
   │
-  ├──── GPIO34 (ADC, misst Vbat/2)
+  ├──── GPIO35 (ADC, misst Vbat × 0.3125)
   │
   R2 (100kΩ)
   │
-Collector ─── 2N2222A
-Emitter ───── GND
-
-GPIO25 ── 1kΩ ── Basis
+ GND ──── ESP32 GND ──── Akku-/Netzteil GND
 ```
 
-**GPIO25 HIGH** → Transistor leitet → Spannungsteiler aktiv → GPIO34 = Vbat/2  
-**GPIO25 LOW** → Transistor sperrt → GPIO34 floatet → ADC liest Rauschwerte
+> **Wichtig:** GND des Akkus/Netzteils muss mit GND des ESP32 verbunden sein (gemeinsamer Masse-Bezug). Ohne das liefert der ADC keine verwertbaren Werte.
+
+Teiler-Faktor: R2/(R1+R2) = 100/320 = **0.3125**  
+GPIO34 = Vbat × 0.3125  → bei 4.2V: GPIO34 = 1.31V
 
 ### Messbereich
 
 | Parameter | Wert |
 |-----------|------|
-| ADC-Eingang | GPIO34 (ADC1 Kanal 6) |
+| ADC-Eingang | GPIO35 (ADC1 Kanal 7) |
 | Attenuation | 12 dB (0–3.9 V) |
-| Teiler-Faktor | 0.5 (R1=R2) |
-| Max. Akku-Spannung | ~4.9 V |
+| Teiler-Faktor | 100/320 = 0.3125 |
+| Multiply-Filter | 3.2 (= 320/100) |
 | Passend für | LiPo Einzelzelle (3.0–4.2 V) |
 
-### Transistor-Zustand mit Multimeter prüfen
-
-Messen an **GPIO34 gegen GND**:
-
-| Transistor | Multimeter-Wert |
-|------------|----------------|
-| Switch ON  | ~Vbat/2 ≈ 1.95 V |
-| Switch OFF | ~Vbat ≈ 3.9 V (Multimeter 10 MΩ als Last) |
-
 ## Software
+
+### Framework
+
+**ESP-IDF** (nutzt `esp_adc_cal` für bessere ADC-Kalibrierung)
 
 ### Entitäten
 
 | Entität | Typ | Beschreibung |
 |---------|-----|-------------|
-| **Akku messen** | Switch | GPIO25 steuern — Transistor ein/aus |
 | **Akku Spannung** | Sensor | Gemessene Spannung in Volt (alle 10s) |
 | **Akku Ladung** | Sensor | Berechneter Ladestand in % (alle 10s) |
 | **Letzter Reset-Grund** | Text Sensor | Diagnose |
 | **IP-Adresse** | Text Sensor | WLAN-IP |
 | **Uptime** | Text Sensor | Laufzeit in h/min |
 
-### Messverhalten
-
-GPIO34 wird alle 10s gelesen, unabhängig vom Switch-Zustand:
-- Switch **ON**: korrekte Akkuspannung (Spannungsteiler aktiv)
-- Switch **OFF**: ADC floatet → Rauschwerte → letzter gültiger HA-Wert bleibt stehen
-
 ### Kalibrierung
-
-Nach Inbetriebnahme mit Multimeter kalibrieren:
 
 ```yaml
 filters:
-  - multiply: 2.0
+  - multiply: 3.2
   - calibrate_linear:
       - 0.0 -> 0.0
-      - 6.29 -> 3.91   # Kalibriert 2026-05-14: ESP las 6.29V, Multimeter 3.91V
+      - 10.06 -> 3.98   # Kalibriert 2026-05-15: ESP las 10.06V, Multimeter 3.98V
+```
+
+Rohwert-Logging für Neukalibrierung (lambda zwischen multiply und calibrate_linear):
+```yaml
+- lambda: |-
+    ESP_LOGI("cal", "Rohwert (pre-cal): %.3f V", x);
+    return x;
 ```
 
 ### Akku-Typ anpassen
@@ -90,8 +81,6 @@ In `substitutions`:
 battery_min_v: "3.0"   # LiPo leer
 battery_max_v: "4.2"   # LiPo voll
 ```
-
-Für andere Akkus (z.B. 3× NiMH = 3.6V max) entsprechend anpassen.
 
 ## Debugging
 
@@ -109,4 +98,4 @@ docker exec esphome esphome logs /config/akku-monitor.yaml
 
 ---
 
-**Zuletzt aktualisiert:** 2026-05-14
+**Zuletzt aktualisiert:** 2026-05-15

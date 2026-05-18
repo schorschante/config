@@ -41,19 +41,7 @@ web_server:
   version: 2
 
 # Schaltung:
-#   Akku+ → R1(220kΩ) → GPIO34 → R2(100kΩ) → Collector(2N2222A) → Emitter → GND
-#   GPIO25 → 1kΩ → Basis
-#   GPIO25 HIGH = Transistor leitet = Spannungsteiler aktiv
-
-switch:
-  - platform: gpio
-    pin:
-      number: GPIO25
-      mode: OUTPUT
-    name: "Akku messen"
-    id: measure_switch
-    restore_mode: ALWAYS_OFF
-    icon: "mdi:battery-search"
+#   Akku+ → R1(220kΩ) → GPIO35 → R2(100kΩ) → GND
 
 sensor:
   - platform: uptime
@@ -62,7 +50,7 @@ sensor:
     update_interval: 60s
 
   - platform: adc
-    pin: GPIO34
+    pin: GPIO35
     name: "Akku Spannung"
     id: battery_voltage
     unit_of_measurement: "V"
@@ -75,10 +63,14 @@ sensor:
       - lambda: |-
           ESP_LOGI("cal", "Rohwert (pre-cal): %.3f V", x);
           return x;
-      # Kalibriert am 2026-05-15 mit Multimeter (Akku = 3.98V, ESP las 10.06V)
       - calibrate_linear:
-          - 0.0 -> 0.0
-          - 10.06 -> 3.98
+          - 3.059 -> 3.0
+          - 3.373 -> 3.3
+          - 3.578 -> 3.5
+          - 3.782 -> 3.7 
+          - 3.990 -> 3.9
+          - 4.173 -> 4.1
+          - 4.291 -> 4.2
     state_class: measurement
     icon: "mdi:battery"
 
