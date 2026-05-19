@@ -103,6 +103,25 @@ docker exec esphome esphome run /config/akku-monitor.yaml --no-logs
 docker exec esphome esphome logs /config/akku-monitor.yaml
 ```
 
+## Bekannte Probleme / Crash-Analyse
+
+### Wiederholte exception/panic nach ~11h Laufzeit (2026-05-18)
+
+**Symptom:** ESP crasht mehrfach nach langer Laufzeit, kein Backtrace verfugbar (Panic-Monitor lauft uber WiFi-API, nicht seriell).
+
+**Kontext:** WiFi -81 dB zur Zeit des Panics, ESPHome 2026.1.0 / ESP-IDF 5.5.2.
+
+**Wahrscheinlichste Ursache:** Heap-Fragmentierung oder Buffer-Leak im async_tcp/LWIP-Stack bei wiederholten TCP-Verbindungsabruchen unter schwachem WiFi-Signal. Bei -81 dB reissen Verbindungen (HA-API + Web-UI SSE) wiederholt ab und werden neu aufgebaut — das akkumuliert sich uber Stunden.
+
+**Verstarkt durch:** `api: reboot_timeout: 0s` — der ESP heilt sich nicht selbst wenn der WiFi-Stack in einen Halbzustand gerat.
+
+**Weitere Verdachtige (niedrigere Prioritat):**
+- `component.update: battery_voltage` + `component.update: battery_percent` direkt hintereinander im selben Interval: battery_percent liest moglicherweise einen inkonsistenten Zwischenwert von battery_voltage (Timing-Konflikt, kein bewiesener Crash-Grund auf Single-Core)
+
+**Diagnose-Empfehlung:** Nachsten Crash seriell loggen (USB-Kabel anlassen, `esphome logs` uber seriell statt WiFi). Backtrace zeigt ob Panic aus WiFi/TCP-Stack oder Sensor-Pfad kommt.
+
+**Workaround bis Backtrace vorliegt:** WiFi-Abdeckung verbessern (Ziel: besser als -75 dB) oder `api: reboot_timeout: 5min` setzen damit der ESP sich bei Verbindungsproblemen selbst zurucksetzt.
+
 ---
 
 **Zuletzt aktualisiert:** 2026-05-18
