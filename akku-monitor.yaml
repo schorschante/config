@@ -7,6 +7,22 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100  # Nach WiFi-Connect (WiFi hat Prio -10)
+    then:
+      - delay: 5s   # Kurze Pause damit WiFi+HA-API stabil sind
+      - logger.log:
+          tag: "sleep"
+          level: INFO
+          format: "Bin wieder wach"
+      - lambda: |-
+          // Letzten Wert vor dem Schlafen aus NVS wiederherstellen
+          id(sensor_voltage_before_sleep).publish_state(id(voltage_before_sleep));
+      - component.update: battery_voltage
+      - component.update: battery_percent
+      - lambda: |-
+          id(voltage_after_wake) = id(battery_voltage).state;
+          id(sensor_voltage_after_wake).publish_state(id(voltage_after_wake));
 
 esp32:
   board: esp32dev
@@ -36,9 +52,43 @@ wifi:
 
 captive_portal:
 
+globals:
+  - id: voltage_before_sleep
+    type: float
+    restore_value: true   # Überlebt Deep Sleep via NVS (Flash)
+    initial_value: "0.0"
+  - id: voltage_after_wake
+    type: float
+    restore_value: false
+    initial_value: "0.0"
+
 web_server:
   port: 80
   version: 2
+
+time:
+  - platform: sntp
+    id: ha_time
+    timezone: "Europe/Berlin"
+    on_time:
+      - hours: 20
+        minutes: 0
+        seconds: 0
+        then:
+          - logger.log:
+              tag: "sleep"
+              format: "Gehe jetzt schlafen bis 08:00 Uhr..."
+          - component.update: battery_voltage
+          - component.update: battery_percent
+          - lambda: |-
+              id(voltage_before_sleep) = id(battery_voltage).state;
+              id(sensor_voltage_before_sleep).publish_state(id(voltage_before_sleep));
+          - deep_sleep.enter:
+              id: deep_sleep_ctrl
+              sleep_duration: 43200s
+
+deep_sleep:
+  id: deep_sleep_ctrl
 
 # Schaltung:
 #   Akku+ → R1(220kΩ) → GPIO35 → R2(100kΩ) → GND
@@ -67,12 +117,32 @@ sensor:
           - 3.059 -> 3.0
           - 3.373 -> 3.3
           - 3.578 -> 3.5
-          - 3.782 -> 3.7 
+          - 3.782 -> 3.7
           - 3.990 -> 3.9
           - 4.173 -> 4.1
           - 4.291 -> 4.2
     state_class: measurement
     icon: "mdi:battery"
+
+  - platform: template
+    name: "Spannung vor Schlaf"
+    id: sensor_voltage_before_sleep
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    update_interval: never
+    device_class: voltage
+    state_class: measurement
+    icon: "mdi:battery-arrow-down"
+
+  - platform: template
+    name: "Spannung nach Aufwachen"
+    id: sensor_voltage_after_wake
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    update_interval: never
+    device_class: voltage
+    state_class: measurement
+    icon: "mdi:battery-arrow-up"
 
   - platform: template
     name: "Akku Ladung"
