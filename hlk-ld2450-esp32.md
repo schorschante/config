@@ -527,6 +527,12 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v2.0 (2026-08-04)
+- Uptime-Anzeige auf lesbares Format umgestellt: `Xd Yh Zm` (z.B. "2d 3h 45m")
+- Numerischer `uptime_sensor` ist jetzt `internal: true` (kein HA-Export mehr in Sekunden)
+- Neuer `text_sensor` "Uptime" mit Template-Lambda ersetzt den alten numerischen Sensor
+- OTA-Flash erforderlich
+
 ### v1.9 (2026-05-18)
 - ESPHome Version Text-Sensor ergänzt (`platform: version`, entity_category: diagnostic)
 - Sensor war bisher nicht vorhanden — zeigt laufende ESPHome-Version in Web-UI und HA
@@ -684,7 +690,7 @@ cat /dev/ttyUSB0 >> /tmp/esp32_log.txt &
 
 ---
 
-**Zuletzt aktualisiert:** 2026-05-18  
+**Zuletzt aktualisiert:** 2026-08-04  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch

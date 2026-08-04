@@ -119,8 +119,8 @@ ld2450:
 
 sensor:
   - platform: uptime
-    name: "Uptime"
     id: uptime_sensor
+    internal: true
     update_interval: 60s
 
   - platform: template
@@ -417,6 +417,21 @@ text_sensor:
     name: "ESPHome Version"
     icon: "mdi:information-outline"
     entity_category: diagnostic
+
+  - platform: template
+    name: "Uptime"
+    id: uptime_text
+    icon: "mdi:clock-start"
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      uint32_t s = id(uptime_sensor).state;
+      uint32_t d = s / 86400;
+      uint32_t h = (s % 86400) / 3600;
+      uint32_t m = (s % 3600) / 60;
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%dd %dh %dm", d, h, m);
+      return std::string(buf);
 
   - platform: wifi_info
     ip_address:
