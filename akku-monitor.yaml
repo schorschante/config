@@ -89,6 +89,8 @@ time:
 
 deep_sleep:
   id: deep_sleep_ctrl
+  run_duration: 2min
+  sleep_duration: 5min
 
 # Schaltung:
 #   Akku+ → R1(220kΩ) → GPIO35 → R2(100kΩ) → GND
