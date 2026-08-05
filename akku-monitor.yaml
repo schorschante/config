@@ -83,14 +83,14 @@ time:
           - lambda: |-
               id(voltage_before_sleep) = id(battery_voltage).state;
               id(sensor_voltage_before_sleep).publish_state(id(voltage_before_sleep));
-          - deep_sleep.enter:
-              id: deep_sleep_ctrl
-              sleep_duration: 43200s
+          # - deep_sleep.enter:
+          #     id: deep_sleep_ctrl
+          #     sleep_duration: 43200s
 
-deep_sleep:
-  id: deep_sleep_ctrl
-  run_duration: 2min
-  sleep_duration: 5min
+# deep_sleep:
+#   id: deep_sleep_ctrl
+#   run_duration: 2min
+#   sleep_duration: 5min
 
 # Schaltung:
 #   Akku+ → R1(220kΩ) → GPIO35 → R2(100kΩ) → GND

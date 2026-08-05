@@ -193,4 +193,6 @@ ESPHome's `deep_sleep` Komponente hat keine eigene `on_sleep` Automation. Stattd
 | v1.4 | 2026-05-19 | Zeitbasierter Deep Sleep: wach 08:00–20:00, schlaeft 20:00–08:00; `time: homeassistant` hinzugefuegt; Schlafdauer wird zur Laufzeit in Sekunden bis 08:00 berechnet; `on_boot` prüft sofort ob Schlafzeit; `interval: 60s` uberwacht Uhrzeit kontinuierlich |
 | v1.5 | 2026-05-19 | Sleep-Logik vereinfacht: `interval: 60s` (Zeitcheck) und `on_boot`-Zeitcheck entfernt; stattdessen `time.on_time` um 20:00 → letzte Messung + `deep_sleep.enter` mit fester Schlafdauer 43200s; `on_shutdown` entfernt (Messung jetzt im `on_time`) |
 
-**Zuletzt aktualisiert:** 2026-05-19
+| v1.6 | 2026-08-04 | OTA-Flash mit ESPHome 2026.7.3 / ESP-IDF 5.5.5 — Build-Cache geleert, kein Compile-Fehler, Flash OK |
+
+**Zuletzt aktualisiert:** 2026-08-04
