@@ -527,6 +527,31 @@ sudo journalctl --vacuum-time=7d
 
 ## Changelog
 
+### v2.3 (2026-08-06)
+- Fix: ESPHome Web-UI zeigte nach `js_url: /ui.js` nur den Download-Button, vollstaendige ESPHome-UI fehlte
+- Ursache: `js_url` in `web_server:` ersetzt das ESPHome CDN-Script komplett. Die HTML-Seite enthaelt danach nur `<script src="/ui.js">`, das echte ESPHome-Frontend (CDN-JS das `<esp-app>` definiert) wird nie geladen. Nur das eigene Mini-JS laeuft, aber in einem leeren Body.
+- Fix: `js_url: /ui.js` aus der YAML entfernt. ESPHome liefert wieder das Standard-CDN-Script.
+- Neuer Endpoint `/downloads` liefert eine eigene HTML-Seite mit Download-Link und Zurueck-Link zur ESPHome-UI.
+- `/dl` (Datei-Download) und `/downloads` (Download-Seite) bleiben als Handler in `download_handlers.h` erhalten.
+- `UiJsHandler` und `UI_JS`-String aus `download_handlers.h` entfernt (nicht mehr benoetigt).
+- OTA-Flash auf 192.168.178.187 erfolgreich
+
+### v2.2 (2026-08-06)
+- Fix: ESPHome Web-UI zeigte nach JS-Injection nur den Download-Button, der Rest der UI fehlte
+- Ursache: `document.addEventListener('DOMContentLoaded', ...)` mit `document.body.prepend()` unterbrach die Lit/Polymer Web Components Initialisierung
+- Fix: `window.addEventListener('load', ...)` statt `DOMContentLoaded` -- damit sind Web Components vollstaendig initialisiert
+- Fix: `document.body.appendChild()` mit `position:fixed;bottom:16px;right:16px` statt `prepend()` -- verschiebt nichts im DOM
+- Hinweis: Dieser Fix hat das Problem nicht behoben, da die eigentliche Ursache `js_url` war (behoben in v2.3)
+- OTA-Flash auf 192.168.178.187 erfolgreich
+
+### v2.1 (2026-08-06)
+- Download-Button fuer suspend-server.py direkt in der ESPHome Web-UI
+- `download_handlers.h`: Zwei HTTP-Handler (`/dl` liefert Script als Download, `/ui.js` liefert Button-JS)
+- Script ist direkt in der .h eingebettet (kein www/-Verzeichnis noetig)
+- `web_server: js_url: /ui.js` injiziert Button automatisch beim Laden der Seite
+- Technischer Hinweis: `canHandle()` muss `const` sein (ESPHome 2026.7.3); `url_to(buf)` statt depreciertem `url()` verwenden; `global_web_server_base` ist der globale Pointer auf die WebServerBase-Instanz
+- OTA-Flash auf 192.168.178.187 erfolgreich
+
 ### v2.0 (2026-08-04)
 - Uptime-Anzeige auf lesbares Format umgestellt: `Xd Yh Zm` (z.B. "2d 3h 45m")
 - Numerischer `uptime_sensor` ist jetzt `internal: true` (kein HA-Export mehr in Sekunden)
@@ -650,6 +675,29 @@ web_server:
   version: 2   # NICHT version: 3 (SSE-Bug in ESPHome 2026.1.0)
 ```
 
+#### js_url in web_server ersetzt das gesamte ESPHome-Frontend
+
+**Symptom:** Nach `web_server: js_url: /pfad` zeigt die Web-UI gar nichts (leere Seite) oder nur das injizierte Element, ESPHome-Controls fehlen komplett.
+
+**Ursache:** `js_url` in der ESPHome `web_server:`-Konfiguration ersetzt den Zeiger auf das CDN-Script komplett. Statt `<script src="https://oi.esphome.io/v2/www.js">` enthaelt die HTML danach nur `<script src="/pfad">`. Das ESPHome-Frontend (das `<esp-app>` Custom Element definiert und alle Controls rendert) wird nie geladen. Das eigene JS laeuft, aber in einem leeren Body ohne funktionierenden DOM-Baum.
+
+**Fix:** `js_url` aus der YAML entfernen. Download-Links oder andere Zusatz-Funktionen ueber eigene URL-Endpunkte anbieten (z.B. `/downloads`-Seite), nicht ueber JS-Injection in die ESPHome-UI.
+
+```yaml
+# FALSCH: ersetzt ESPHome-Frontend komplett!
+web_server:
+  port: 80
+  version: 2
+  js_url: /mein-script.js
+
+# RICHTIG: kein js_url, stattdessen eigene Endpunkte
+web_server:
+  port: 80
+  version: 2
+```
+
+Eigene Handler (z.B. `/downloads`, `/dl`) koennen per `register_download_handlers()` in `on_boot` registriert werden und laufen unabhaengig von der ESPHome-UI.
+
 #### Backtrace dekodieren
 
 Bei `exception/panic` gibt der ESP32 beim Neustart eine Backtrace auf Serial aus. Dekodieren mit:
@@ -690,7 +738,7 @@ cat /dev/ttyUSB0 >> /tmp/esp32_log.txt &
 
 ---
 
-**Zuletzt aktualisiert:** 2026-08-04  
+**Zuletzt aktualisiert:** 2026-08-06  
 **System läuft auf:** Arch Linux (Kernel 6.x)  
 **Hostname:** DASNEST  
 **User:** schorsch

@@ -7,10 +7,14 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
+  includes:
+    - download_handlers.h
   on_boot:
     priority: -100
     then:
       - switch.turn_on: multi_target
+      - lambda: |-
+          register_download_handlers();
 
 esp32:
   board: esp32dev
@@ -45,6 +49,7 @@ ota:
 web_server:
   port: 80
   version: 2
+  js_url: /ui.js
 
 globals:
   - id: no_presence_since_ms
