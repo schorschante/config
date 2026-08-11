@@ -103,6 +103,31 @@ text:
     min_length: 7
     max_length: 15
 
+  # ========== WiFi Konfiguration ==========
+  - platform: template
+    name: "WiFi SSID"
+    id: wifi_ssid_input
+    icon: "mdi:wifi"
+    initial_value: ""
+    restore_value: true
+    optimistic: true
+    mode: text
+    min_length: 0
+    max_length: 32
+    entity_category: config
+
+  - platform: template
+    name: "WiFi Passwort"
+    id: wifi_pass_input
+    icon: "mdi:key-wireless"
+    initial_value: ""
+    restore_value: true
+    optimistic: true
+    mode: password
+    min_length: 0
+    max_length: 64
+    entity_category: config
+
 # ========== HTTP Request ==========
 http_request:
   timeout: 500ms
@@ -399,6 +424,26 @@ button:
           format: "⚠️ Manueller Suspend-Befehl..."
       - http_request.post:
           url: !lambda 'return "http://" + id(pc_ip).state + ":5000/suspend";'
+
+  - platform: template
+    name: "WiFi Einstellungen anwenden"
+    icon: "mdi:wifi-refresh"
+    on_press:
+      - lambda: |-
+          std::string ssid = id(wifi_ssid_input).state;
+          std::string pass = id(wifi_pass_input).state;
+          if (ssid.empty()) {
+            ESP_LOGW("wifi_cfg", "WiFi SSID ist leer — Abbruch");
+            return;
+          }
+          ESP_LOGI("wifi_cfg", "Speichere neue WiFi-Credentials: SSID='%s'", ssid.c_str());
+          esphome::wifi::global_wifi_component->save_wifi_sta(ssid, pass);
+      - logger.log:
+          level: INFO
+          format: "WiFi-Credentials gespeichert — Neustart in 2s..."
+          tag: "wifi_cfg"
+      - delay: 2s
+      - lambda: 'esphome::App.safe_reboot();'
 
 switch:
   - platform: ld2450

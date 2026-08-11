@@ -243,6 +243,16 @@ curl http://localhost:5000/status
 - "PC IP-Adresse" auf die neue IP setzen
 - Wert wird auf dem Gerät gespeichert (überlebt Neustart)
 
+#### WiFi-Credentials ändern
+
+**Über Web-UI konfigurierbar** (kein Reflash nötig):
+- Web-UI öffnen: `http://ESP32_IP`
+- "WiFi SSID" auf neue SSID setzen (entity_category: config, max 32 Zeichen)
+- "WiFi Passwort" auf neues Passwort setzen (mode: password, max 64 Zeichen)
+- Button "WiFi Einstellungen anwenden" klicken
+- ESP32 speichert Credentials in NVS via `save_wifi_sta()` und startet in 2s neu
+- Falls Verbindung fehlschlaegt: Fallback-AP "HLK-LD2450 Radar Fallback" (Passwort: esphome123) wird geoeffnet
+
 ## Debugging
 
 ### Crash-Diagnose
@@ -526,6 +536,22 @@ sudo journalctl --vacuum-time=7d
 - **Flask:** BSD License
 
 ## Changelog
+
+### v2.5 (2026-08-11)
+- OTA-Flash auf 192.168.178.187 erfolgreich (ESPHome 2026.7.3, ESP-IDF 5.5.5)
+- Keine YAML-Aenderungen — reiner Reflash des bestehenden Stands
+- Compiler-Warnings (format '%d' fuer uint32_t) sind bekannt und harmlos — kein Crash-Risiko
+
+### v2.4 (2026-08-11)
+- WiFi-Credentials ueber die ESPHome Web-UI konfigurierbar (kein Reflash noetig)
+- Zwei neue `text`-Entities: "WiFi SSID" (id: wifi_ssid_input) und "WiFi Passwort" (id: wifi_pass_input)
+  - `restore_value: true` — Werte bleiben nach Neustart erhalten
+  - `entity_category: config` — in HA unter Konfiguration, nicht im Dashboard
+  - WiFi Passwort: `mode: password` (in HA verdeckt dargestellt)
+- Neuer Button "WiFi Einstellungen anwenden": ruft `save_wifi_sta()` auf dem `global_wifi_component` auf, dann `safe_reboot()` nach 2s
+- `save_wifi_sta()` speichert Credentials in NVS und setzt neues STA — beim Neustart verbindet ESP32 damit
+- `wifi_component.h` ist im generierten `esphome.h` bereits enthalten (kein zusaetzlicher Include noetig)
+- OTA-Flash auf 192.168.178.187 erfolgreich
 
 ### v2.3 (2026-08-06)
 - Fix: ESPHome Web-UI zeigte nach `js_url: /ui.js` nur den Download-Button, vollstaendige ESPHome-UI fehlte
